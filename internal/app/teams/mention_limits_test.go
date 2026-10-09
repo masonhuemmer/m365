@@ -1,6 +1,7 @@
 package teams
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -93,5 +94,41 @@ func TestMentionNeverGuessesWhenPaddingHidesALongerName(t *testing.T) {
 	sendHTML(t, st, "<p>@Bo"+strings.Repeat(" ", 251)+"Chen</p>")
 	if len(st.last.Mentions) != 0 {
 		t.Fatalf("guessed %+v", st.last.Mentions)
+	}
+}
+
+// Thirteenth review round.
+
+func TestMentionAliasWithApostropheSDoesNotLookLikeAPossessive(t *testing.T) {
+	st := chatOf(person("u-bo", "Bo", "bo@example.com"), person("u-bc", "Boris Chen", "bo's-team@example.com"), person("u-me", "Me", "self@example.com"))
+	if _, err := send(t, st, "@bo's-team please look", func(in *SendInput) { in.DryRun = false }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-bc" {
+		t.Fatalf("%+v", st.last.Mentions)
+	}
+}
+
+func TestMentionLookaheadIsBoundedInsideALargeTextToken(t *testing.T) {
+	st := group()
+	body := "<p>" + strings.Repeat("@Bo<i></i> ", 3000) + "<strong>" + strings.Repeat("x", 262144) + "</strong></p>"
+	start := time.Now()
+	sendHTML(t, st, body)
+	if d := time.Since(start); d > 2*time.Second {
+		t.Fatalf("took %v", d)
+	}
+}
+
+func TestMentionManyDistinctUnknownHandlesIsFast(t *testing.T) {
+	var b strings.Builder
+	b.WriteString("<p>")
+	for i := 0; i < 40000; i++ {
+		b.WriteString("@u" + strconv.Itoa(i) + " ")
+	}
+	b.WriteString("</p>")
+	start := time.Now()
+	sendHTML(t, group(), b.String())
+	if d := time.Since(start); d > 2*time.Second {
+		t.Fatalf("took %v", d)
 	}
 }

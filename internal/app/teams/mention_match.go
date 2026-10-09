@@ -126,7 +126,7 @@ func foldPrefix(rest, name string) (int, bool) {
 }
 
 func wordContinues(s string) bool {
-	if after, ok := cutPossessivePrefix(s); ok && !startsWord(after) {
+	if after, ok := cutPossessivePrefix(s); ok && !startsWord(strings.TrimLeft(after, "._-'\u2019")) {
 		return false // "@Bo Chen's change": the 's is not part of the name
 	}
 	return startsWord(strings.TrimLeft(s, "._-'\u2019"))
@@ -181,11 +181,13 @@ func names(list []domain.Person) string {
 }
 
 func (m *mentioner) noteUnresolved(token string) {
-	for _, t := range m.unresolved {
-		if t == token {
-			return
-		}
+	if m.seen[token] {
+		return
 	}
+	if m.seen == nil {
+		m.seen = map[string]bool{}
+	}
+	m.seen[token] = true
 	m.unresolved = append(m.unresolved, token)
 }
 

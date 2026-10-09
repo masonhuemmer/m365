@@ -61,7 +61,15 @@ func aheadText(toks []htmlToken, k int) (string, bool) {
 				return b.String(), false
 			}
 		case xhtml.TextToken:
-			for _, r := range html.UnescapeString(t.raw) {
+			// Decode only as much of a long text token as the budget can use.
+			raw := t.raw
+			if len(raw) > 4*aheadLimit {
+				raw = raw[:runeStart(raw, 4*aheadLimit)]
+			}
+			for _, r := range html.UnescapeString(raw) {
+				if b.Len() >= aheadLimit {
+					return b.String(), true
+				}
 				if unicode.IsSpace(r) {
 					if !space {
 						b.WriteByte(' ')
@@ -72,6 +80,9 @@ func aheadText(toks []htmlToken, k int) (string, bool) {
 				space = false
 				b.WriteRune(r)
 			}
+			if len(raw) < len(t.raw) {
+				return b.String(), true
+			}
 		}
 	}
 	return b.String(), false
@@ -81,11 +92,7 @@ func aheadText(toks []htmlToken, k int) (string, bool) {
 // plus what follows it on the line, both bounded.
 func window(rest string, ahead func() (string, bool)) (string, bool) {
 	if len(rest) > aheadLimit {
-		cut := aheadLimit
-		for cut > 0 && !utf8.RuneStart(rest[cut]) {
-			cut--
-		}
-		return rest[:cut], true
+		return rest[:runeStart(rest, aheadLimit)], true
 	}
 	more, truncated := ahead()
 	return rest + more, truncated
@@ -115,4 +122,12 @@ func breaksLine(name string) bool {
 		return true
 	}
 	return false
+}
+
+// runeStart moves n back to the start of a rune, so a cut never splits one.
+func runeStart(s string, n int) int {
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return n
 }

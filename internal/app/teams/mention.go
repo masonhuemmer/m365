@@ -65,8 +65,9 @@ type mentioner struct {
 	ids        map[string]int
 	mentions   []Mention
 	unresolved []string
-	prev       rune // last visible character, carried across inline tags
-	longest    int  // longest member name or email, in bytes (0 until needed)
+	seen       map[string]bool // members of unresolved, for O(1) dedupe
+	prev       rune            // last visible character, carried across inline tags
+	longest    int             // longest member name or email, in bytes (0 until needed)
 }
 
 // rewrite mentions people in text only: never inside tags, comments, code
