@@ -13,12 +13,15 @@ import (
 // matches nobody is recorded as unresolved and stays plain text.
 func (m *mentioner) match(rest string) (*domain.Person, int, error) {
 	raw := mentionWord.FindString(rest)
-	// "_" and "-" are valid at the end of an email name (ops_@example.com), so
-	// an exact alias like that wins over a shorter name or alias.
+	// "_" and "-" are valid at the end of an email name (ops_@example.com), so a
+	// token that ends in one is an alias: it matches exactly or not at all, and
+	// is never shortened to a different spelling.
 	if tok := strings.TrimRight(raw, ".'\u2019"); strings.HasSuffix(tok, "_") || strings.HasSuffix(tok, "-") {
 		if found := m.byLocal(tok); len(found) > 0 {
 			return m.pick(found, tok)
 		}
+		m.noteUnresolved("@" + tok)
+		return nil, 0, nil
 	}
 	if p, n, err := m.byFullName(rest); p != nil || err != nil {
 		return p, n, err

@@ -70,3 +70,28 @@ func TestMentionManyInOneTextNodeIsFast(t *testing.T) {
 		t.Fatalf("mentions %d", len(st.last.Mentions))
 	}
 }
+
+// Twelfth review round.
+
+func TestMentionUnknownAliasEndingInUnderscoreStaysText(t *testing.T) {
+	st := chatOf(person("u-ops", "Ops", "ops@example.com"), person("u-me", "Me", "self@example.com"))
+	out, err := send(t, st, "@ops_ please look")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := out.(map[string]any)
+	if _, ok := m["mentions"]; ok {
+		t.Fatalf("notified someone for a different spelling: %v", m["mentions"])
+	}
+	if got := m["unresolved_mentions"]; !equalStrings(got, []string{"@ops_"}) {
+		t.Fatalf("unresolved %v", got)
+	}
+}
+
+func TestMentionNeverGuessesWhenPaddingHidesALongerName(t *testing.T) {
+	st := chatOf(person("u-bo", "Bo", "bo@example.com"), person("u-bc", "Bo Chen", "bo.chen@example.com"), person("u-me", "Me", "self@example.com"))
+	sendHTML(t, st, "<p>@Bo"+strings.Repeat(" ", 251)+"Chen</p>")
+	if len(st.last.Mentions) != 0 {
+		t.Fatalf("guessed %+v", st.last.Mentions)
+	}
+}

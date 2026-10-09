@@ -66,6 +66,7 @@ type mentioner struct {
 	mentions   []Mention
 	unresolved []string
 	prev       rune // last visible character, carried across inline tags
+	longest    int  // longest member name or email, in bytes (0 until needed)
 }
 
 // rewrite mentions people in text only: never inside tags, comments, code
@@ -129,7 +130,7 @@ func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() 
 		}
 		// Cut-off text proves nothing about where the name ends, and a name that
 		// crosses an inline tag cannot be rewritten: leave both as text.
-		if n > len(rest) || (truncated && strings.TrimSpace(whole[n:]) == "") {
+		if n > len(rest) || (truncated && !m.windowCoversNames(whole)) {
 			m.noteUnresolved("@" + whole[:n])
 			continue
 		}
@@ -160,4 +161,28 @@ func (m *mentioner) tag(p domain.Person) string {
 		m.mentions = append(m.mentions, Mention{ID: id, Name: p.Name, UserID: p.ID})
 	}
 	return `<at id="` + strconv.Itoa(id) + `">` + html.EscapeString(p.Name) + `</at>`
+}
+
+// windowCoversNames is true when a cut-off window still shows more visible text
+// than the longest member name or email. Only then can no longer name be hiding
+// past the cut; padding or empty tags that eat the window say nothing.
+func (m *mentioner) windowCoversNames(whole string) bool {
+	if m.longest == 0 {
+		for _, p := range m.members {
+			m.longest = max(m.longest, len(p.Name), len(p.Address))
+		}
+	}
+	visible, space := 0, false
+	for _, r := range whole {
+		if unicode.IsSpace(r) {
+			if !space {
+				visible++
+			}
+			space = true
+			continue
+		}
+		space = false
+		visible += utf8.RuneLen(r)
+	}
+	return visible > m.longest
 }
