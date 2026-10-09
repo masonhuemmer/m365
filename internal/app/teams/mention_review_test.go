@@ -159,3 +159,33 @@ func TestMentionApostropheInsideANameBeatsShorterName(t *testing.T) {
 		t.Fatalf("%+v %q", st.last.Mentions, st.last.Rendered.Content)
 	}
 }
+
+// Fifth review round.
+
+func TestMentionSpaceBeforeInlineTagCannotPickTheShorterName(t *testing.T) {
+	members := []domain.Person{person("u-bo", "Bo", "bo@example.com"), person("u-bc", "Bo Chen", "bo.chen@example.com"), person("u-me", "Me", "self@example.com")}
+	st := chatOf(members...)
+	if _, err := send(t, st, "@Bo **Chen** please look", func(in *SendInput) { in.DryRun = false; in.MD = true }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 0 {
+		t.Fatalf("guessed %+v from %q", st.last.Mentions, st.last.Rendered.Content)
+	}
+	st = chatOf(members...)
+	if _, err := send(t, st, "@Bo **please** look", func(in *SendInput) { in.DryRun = false; in.MD = true }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-bo" {
+		t.Fatalf("a later word is not part of the name: %+v", st.last.Mentions)
+	}
+}
+
+func TestMentionPossessiveAfterAFullName(t *testing.T) {
+	st := chatOf(person("u-bo", "Bo", "bo@example.com"), person("u-bc", "Bo Chen", "bo.chen@example.com"), person("u-me", "Me", "self@example.com"))
+	if _, err := send(t, st, "@Bo Chen's change is in", func(in *SendInput) { in.DryRun = false }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-bc" {
+		t.Fatalf("%+v %q", st.last.Mentions, st.last.Rendered.Content)
+	}
+}

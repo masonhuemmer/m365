@@ -217,8 +217,12 @@ func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() 
 // the visible text that follows it on the line. It is the same mention only if
 // the longer text still names the same member in the same number of bytes.
 func (m *mentioner) sameWhenWhole(rest string, who *domain.Person, n int, match resolver, ahead func() string) (bool, error) {
-	if strings.IndexFunc(rest[n:], unicode.IsSpace) >= 0 {
-		return true, nil // the name ends inside this text
+	// The token ends inside this node when a space follows it before the node
+	// ends: "@Bo, hi", "@Bo. please" or "@Bo please". Trailing space alone, or
+	// no space at all ("@Bo." / "@Bo"), leaves it open to the next node.
+	tail := rest[n:]
+	if sp := strings.IndexFunc(tail, unicode.IsSpace); sp > 0 || (sp == 0 && strings.TrimSpace(tail) != "") {
+		return true, nil
 	}
 	more := ahead()
 	if more == "" {

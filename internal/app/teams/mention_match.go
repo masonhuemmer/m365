@@ -76,12 +76,17 @@ func (m *mentioner) byFullName(rest string) (*domain.Person, int, error) {
 // digits, or alias separators (. _ - and apostrophes) followed by one, as in
 // "@bo.chen", "@bo__chen" or "@Al'Amin". It lets the email-alias match win over a shorter full name.
 func wordContinues(s string) bool {
-	rest := strings.TrimLeft(s, "._-'\u2019")
-	if rest == "" {
-		return false
+	for _, possessive := range []string{"'s", "\u2019s"} {
+		if after, ok := strings.CutPrefix(s, possessive); ok && !startsWord(after) {
+			return false // "@Bo Chen's change": the 's is not part of the name
+		}
 	}
-	r, _ := utf8.DecodeRuneInString(rest)
-	return unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsMark(r)
+	return startsWord(strings.TrimLeft(s, "._-'\u2019"))
+}
+
+func startsWord(s string) bool {
+	r, _ := utf8.DecodeRuneInString(s)
+	return s != "" && (unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsMark(r))
 }
 
 // byWord matches one word: an email name part (@ajay.mathew) first, then a
