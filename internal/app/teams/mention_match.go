@@ -12,10 +12,18 @@ import (
 // bytes of it the name used. A nil member means no mention here; a name that
 // matches nobody is recorded as unresolved and stays plain text.
 func (m *mentioner) match(rest string) (*domain.Person, int, error) {
+	raw := mentionWord.FindString(rest)
+	// "_" and "-" are valid at the end of an email name (ops_@example.com), so
+	// an exact alias like that wins over a shorter name or alias.
+	if tok := strings.TrimRight(raw, ".'\u2019"); strings.HasSuffix(tok, "_") || strings.HasSuffix(tok, "-") {
+		if found := m.byLocal(tok); len(found) > 0 {
+			return m.pick(found, tok)
+		}
+	}
 	if p, n, err := m.byFullName(rest); p != nil || err != nil {
 		return p, n, err
 	}
-	word := strings.TrimRight(mentionWord.FindString(rest), "._-'\u2019")
+	word := strings.TrimRight(raw, "._-'\u2019")
 	if word == "" {
 		return nil, 0, nil
 	}
@@ -27,11 +35,16 @@ func (m *mentioner) match(rest string) (*domain.Person, int, error) {
 			}
 		}
 	}
-	switch len(found) {
-	case 0:
+	if len(found) == 0 {
 		m.noteUnresolved("@" + word)
 		return nil, 0, nil
-	case 1:
+	}
+	return m.pick(found, word)
+}
+
+// pick returns the one member found for word, or fails if there are several.
+func (m *mentioner) pick(found []domain.Person, word string) (*domain.Person, int, error) {
+	if len(found) == 1 {
 		return m.mentionable(found[0], len(word))
 	}
 	return nil, 0, domain.Usagef("@%s matches several chat members (%s); write the full name", word, names(found))
@@ -124,19 +137,27 @@ func startsWord(s string) bool {
 // byWord matches one word: an email name part (@ajay.mathew) first, then a
 // first name (@Ajay).
 func (m *mentioner) byWord(word string) []domain.Person {
-	var local, first []domain.Person
+	if local := m.byLocal(word); len(local) > 0 {
+		return local
+	}
+	var first []domain.Person
 	for _, p := range m.members {
-		if at := strings.IndexByte(p.Address, '@'); at > 0 && strings.EqualFold(p.Address[:at], word) {
-			local = appendOnce(local, p)
-		}
 		if f := strings.Fields(p.Name); len(f) > 0 && strings.EqualFold(f[0], word) {
 			first = appendOnce(first, p)
 		}
 	}
-	if len(local) > 0 {
-		return local
-	}
 	return first
+}
+
+// byLocal matches the part of a member's email before the @.
+func (m *mentioner) byLocal(word string) []domain.Person {
+	var local []domain.Person
+	for _, p := range m.members {
+		if at := strings.IndexByte(p.Address, '@'); at > 0 && strings.EqualFold(p.Address[:at], word) {
+			local = appendOnce(local, p)
+		}
+	}
+	return local
 }
 
 func appendOnce(list []domain.Person, p domain.Person) []domain.Person {

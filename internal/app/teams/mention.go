@@ -96,11 +96,18 @@ func tokenize(content string) ([]htmlToken, error) {
 	}
 }
 
+// aheadLimit bounds how far past a name we read: display names and aliases are
+// short, and reading the rest of a long line for every "@" would be quadratic.
+const aheadLimit = 256
+
 // aheadText is the visible text that follows token k on the same line, read
 // through inline tags, so a name split by <strong> is seen whole.
 func aheadText(toks []htmlToken, k int) string {
 	var b strings.Builder
-	for _, t := range toks[k+1:] {
+	for visited, t := range toks[k+1:] {
+		if visited >= aheadLimit || b.Len() >= aheadLimit {
+			break
+		}
 		switch t.tt {
 		case xhtml.StartTagToken, xhtml.EndTagToken, xhtml.SelfClosingTagToken:
 			if breaksLine(t.name) {
