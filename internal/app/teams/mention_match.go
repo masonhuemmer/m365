@@ -21,12 +21,9 @@ func (m *mentioner) match(rest string) (*domain.Person, int, error) {
 	}
 	found := m.byWord(word)
 	if len(found) == 0 { // "@Ajay's": the name is Ajay
-		for _, suffix := range []string{"'s", "\u2019s"} {
-			if trimmed, ok := strings.CutSuffix(word, suffix); ok && trimmed != "" {
-				if found = m.byWord(trimmed); len(found) > 0 {
-					word = trimmed
-					break
-				}
+		if trimmed, ok := cutPossessiveSuffix(word); ok && trimmed != "" {
+			if found = m.byWord(trimmed); len(found) > 0 {
+				word = trimmed
 			}
 		}
 	}
@@ -113,10 +110,8 @@ func foldPrefix(rest, name string) (int, bool) {
 }
 
 func wordContinues(s string) bool {
-	for _, possessive := range []string{"'s", "\u2019s"} {
-		if after, ok := strings.CutPrefix(s, possessive); ok && !startsWord(after) {
-			return false // "@Bo Chen's change": the 's is not part of the name
-		}
+	if after, ok := cutPossessivePrefix(s); ok && !startsWord(after) {
+		return false // "@Bo Chen's change": the 's is not part of the name
 	}
 	return startsWord(strings.TrimLeft(s, "._-'\u2019"))
 }
@@ -168,4 +163,25 @@ func (m *mentioner) noteUnresolved(token string) {
 		}
 	}
 	m.unresolved = append(m.unresolved, token)
+}
+
+// cutPossessivePrefix strips a leading 's or ’s, in any case.
+func cutPossessivePrefix(s string) (string, bool) {
+	for _, apostrophe := range []string{"'", "\u2019"} {
+		if after, ok := strings.CutPrefix(s, apostrophe); ok && after != "" && (after[0] == 's' || after[0] == 'S') {
+			return after[1:], true
+		}
+	}
+	return s, false
+}
+
+// cutPossessiveSuffix strips a trailing 's or ’s, in any case.
+func cutPossessiveSuffix(s string) (string, bool) {
+	for _, apostrophe := range []string{"'", "\u2019"} {
+		n := len(apostrophe) + 1
+		if len(s) >= n && strings.HasPrefix(s[len(s)-n:], apostrophe) && strings.EqualFold(s[len(s)-1:], "s") {
+			return s[:len(s)-n], true
+		}
+	}
+	return s, false
 }

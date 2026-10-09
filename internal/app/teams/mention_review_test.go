@@ -212,3 +212,21 @@ func TestMentionFullNameAcrossCollapsedWhitespace(t *testing.T) {
 		}
 	}
 }
+
+// Eighth review round: capitalization must not change who is notified.
+func TestMentionUppercasePossessives(t *testing.T) {
+	st := chatOf(person("u-bo", "Bo", "bo@example.com"), person("u-bc", "Bo Chen", "bo.chen@example.com"), person("u-me", "Me", "self@example.com"))
+	if _, err := send(t, st, "@BO CHEN'S update is in", func(in *SendInput) { in.DryRun = false }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-bc" {
+		t.Fatalf("full name: %+v", st.last.Mentions)
+	}
+	st = group()
+	if _, err := send(t, st, "@AJAY’S change is in", func(in *SendInput) { in.DryRun = false }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-ajay" {
+		t.Fatalf("first name: %+v", st.last.Mentions)
+	}
+}
