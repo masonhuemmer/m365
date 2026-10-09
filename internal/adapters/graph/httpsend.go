@@ -113,6 +113,9 @@ func (c *HTTPTeams) Send(ctx context.Context, in teams.SendInput) (string, error
 		content, atts = attachRefs(content, shared)
 		body["attachments"] = atts
 	}
+	if len(in.Mentions) > 0 {
+		body["mentions"] = mentionPayload(in.Mentions)
+	}
 	body["body"] = map[string]string{"contentType": "html", "content": content}
 	if err := c.doJSON(ctx, http.MethodPost, "/me/chats/"+url.PathEscape(in.ChatID)+"/messages", body); err != nil {
 		return "", partialUpload(err, shared)

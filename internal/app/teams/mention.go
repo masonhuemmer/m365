@@ -1,0 +1,189 @@
+package teams
+
+import (
+	"context"
+	"html"
+	"regexp"
+	"strconv"
+	"strings"
+	"unicode"
+	"unicode/utf8"
+
+	xhtml "golang.org/x/net/html"
+
+	"github.com/masonhuemmer/m365/internal/domain"
+)
+
+// Mention is one person tagged in a message: the <at id> in the body and the
+// matching entry in Graph's mentions array.
+type Mention struct {
+	ID     int
+	Name   string
+	UserID string
+}
+
+// Letters, combining marks, digits, apostrophes and alias characters: D'Arcy, दीपक, bo.chen, bo+ops.
+var mentionWord = regexp.MustCompile(`^[\p{L}\p{M}\p{N}._'\x{2019}+-]+`)
+
+// resolver maps the text after an "@" to a chat member and the bytes it used.
+type resolver func(rest string) (*domain.Person, int, error)
+
+// applyMentions turns a typed @Name into a real mention of a member of the
+// chat. Only an @ at the start of a word counts, so addresses like
+// ajay@example.com are left alone, and names are matched against the chat's
+// members only. A name that matches nobody stays plain text and is reported;
+// one that matches several members fails before anything is sent.
+func applyMentions(ctx context.Context, st Store, in *SendInput) error {
+	if in.ChatID == SelfChatID {
+		return nil
+	}
+	// First pass with no members: only to learn whether the text has a typed
+	// @name at all, so a chat is never read for an ordinary message.
+	probe := &mentioner{}
+	found := false
+	if _, err := probe.rewrite(in.Rendered.Content, func(string) (*domain.Person, int, error) {
+		found = true
+		return nil, 0, nil
+	}); err != nil || !found {
+		return err
+	}
+	chat, err := st.GetChat(ctx, in.ChatID)
+	if err != nil {
+		return err
+	}
+	mp := &mentioner{members: chat.Members, ids: map[string]int{}}
+	content, err := mp.rewrite(in.Rendered.Content, mp.match)
+	if err != nil {
+		return err
+	}
+	in.Rendered.Content, in.Mentions, in.UnresolvedMentions = content, mp.mentions, mp.unresolved
+	return nil
+}
+
+type mentioner struct {
+	members    []domain.Person
+	ids        map[string]int
+	mentions   []Mention
+	unresolved []string
+	seen       map[string]bool // members of unresolved, for O(1) dedupe
+	prev       rune            // last visible character, carried across inline tags
+	longest    int             // longest member name or email, in bytes (0 until needed)
+}
+
+// rewrite mentions people in text only: never inside tags, comments, code
+// blocks or links.
+func (m *mentioner) rewrite(content string, match resolver) (string, error) {
+	toks, err := tokenize(content)
+	if err != nil {
+		return "", err
+	}
+	var out strings.Builder
+	skip := 0
+	m.prev = '\n'
+	for k, t := range toks {
+		switch t.tt {
+		case xhtml.StartTagToken, xhtml.EndTagToken, xhtml.SelfClosingTagToken:
+			skip = max(0, skip+skipDelta(t.tt, t.name))
+			if breaksLine(t.name) {
+				m.prev = '\n'
+			}
+			out.WriteString(t.raw)
+		case xhtml.TextToken:
+			text, err := m.text(t.raw, skip > 0, match, func() (string, bool) { return aheadText(toks, k) })
+			if err != nil {
+				return "", err
+			}
+			out.WriteString(text)
+		default:
+			out.WriteString(t.raw)
+		}
+	}
+	return out.String(), nil
+}
+
+func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() (string, bool)) (string, error) {
+	plain := html.UnescapeString(raw)
+	defer func() {
+		if r, _ := utf8.DecodeLastRuneInString(plain); r != utf8.RuneError && plain != "" {
+			m.prev = r
+		}
+	}()
+	if skipped || !strings.Contains(plain, "@") {
+		return raw, nil
+	}
+	var out strings.Builder
+	last, changed := 0, false
+	for i := 0; i < len(plain); i++ {
+		if plain[i] != '@' || !m.atWordStart(plain, i) {
+			continue
+		}
+		// Resolve against everything visible on the line, read through inline
+		// tags, so formatting can never change who is meant. A name that crosses
+		// a tag ("@Ajay **Singh**") is left as text and reported, not guessed.
+		rest := plain[i+1:]
+		whole, truncated := window(rest, ahead)
+		who, n, err := match(whole)
+		if err != nil {
+			return "", err
+		}
+		if who == nil {
+			continue
+		}
+		// Cut-off text proves nothing about where the name ends, and a name that
+		// crosses an inline tag cannot be rewritten: leave both as text.
+		if n > len(rest) || (truncated && !m.windowCoversNames(whole)) {
+			m.noteUnresolved("@" + whole[:n])
+			continue
+		}
+		out.WriteString(html.EscapeString(plain[last:i]))
+		out.WriteString(m.tag(*who))
+		last, i, changed = i+1+n, i+n, true
+	}
+	if !changed {
+		return raw, nil
+	}
+	out.WriteString(html.EscapeString(plain[last:]))
+	return out.String(), nil
+}
+
+func (m *mentioner) atWordStart(s string, i int) bool {
+	r := m.prev
+	if i > 0 {
+		r, _ = utf8.DecodeLastRuneInString(s[:i])
+	}
+	return unicode.IsSpace(r) || r == '('
+}
+
+func (m *mentioner) tag(p domain.Person) string {
+	id, seen := m.ids[p.ID]
+	if !seen {
+		id = len(m.mentions)
+		m.ids[p.ID] = id
+		m.mentions = append(m.mentions, Mention{ID: id, Name: p.Name, UserID: p.ID})
+	}
+	return `<at id="` + strconv.Itoa(id) + `">` + html.EscapeString(p.Name) + `</at>`
+}
+
+// windowCoversNames is true when a cut-off window still shows more visible text
+// than the longest member name or email. Only then can no longer name be hiding
+// past the cut; padding or empty tags that eat the window say nothing.
+func (m *mentioner) windowCoversNames(whole string) bool {
+	if m.longest == 0 {
+		for _, p := range m.members {
+			m.longest = max(m.longest, len(p.Name), len(p.Address))
+		}
+	}
+	visible, space := 0, false
+	for _, r := range whole {
+		if unicode.IsSpace(r) {
+			if !space {
+				visible++
+			}
+			space = true
+			continue
+		}
+		space = false
+		visible += utf8.RuneLen(r)
+	}
+	return visible > m.longest
+}

@@ -33,7 +33,10 @@ type SendInput struct {
 	ExactRecipient bool
 	// ShareWith lists who must be able to open Files: the chat members but the sender.
 	ShareWith []string
-	Files     []domain.OutboundFile
+	// Mentions and UnresolvedMentions come from @Name tokens in the text; see applyMentions.
+	Mentions           []Mention
+	UnresolvedMentions []string
+	Files              []domain.OutboundFile
 	// Rendered is the delivered body, set by SendMapped. Stores send it as-is.
 	Rendered msgbody.Rendered
 }
@@ -134,6 +137,9 @@ func SendMapped(ctx context.Context, st Store, m ChatMap, sess domain.Session, i
 		return nil, domain.Usage("chat id and text are required")
 	}
 	problems := msgbody.Lint(in.Rendered.Content)
+	if err := applyMentions(ctx, st, &in); err != nil {
+		return nil, err
+	}
 	if in.DryRun {
 		return dryRunResult(in, problems), nil
 	}
