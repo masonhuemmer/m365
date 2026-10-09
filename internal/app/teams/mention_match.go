@@ -16,7 +16,7 @@ func (m *mentioner) match(rest string) (*domain.Person, int, error) {
 	// "_" and "-" are valid at the end of an email name (ops_@example.com), so a
 	// token that ends in one is an alias: it matches exactly or not at all, and
 	// is never shortened to a different spelling.
-	if tok := strings.TrimRight(raw, ".'\u2019"); strings.HasSuffix(tok, "_") || strings.HasSuffix(tok, "-") {
+	if tok := strings.TrimRight(raw, ".'\u2019"); strings.HasSuffix(tok, "_") || strings.HasSuffix(tok, "-") || strings.HasSuffix(tok, "+") {
 		if found := m.byLocal(tok); len(found) > 0 {
 			return m.pick(found, tok)
 		}

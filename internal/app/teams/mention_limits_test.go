@@ -152,3 +152,13 @@ func TestMentionDuplicateNameErrorSuggestsAnAlias(t *testing.T) {
 		t.Fatalf("error should suggest an email name, not a chat id: %v", err)
 	}
 }
+
+func TestMentionAliasEndingInPlus(t *testing.T) {
+	st := chatOf(person("u-ops", "Ops", "ops@example.com"), person("u-o", "Olivia Smith", "ops+@example.com"), person("u-me", "Me", "self@example.com"))
+	if _, err := send(t, st, "@ops+ please look", func(in *SendInput) { in.DryRun = false }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-o" {
+		t.Fatalf("%+v", st.last.Mentions)
+	}
+}
