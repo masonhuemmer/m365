@@ -22,8 +22,8 @@ type Mention struct {
 	UserID string
 }
 
-// Letters, combining marks, digits, apostrophes and alias separators: D'Arcy, दीपक, bo.chen.
-var mentionWord = regexp.MustCompile(`^[\p{L}\p{M}\p{N}._'\x{2019}-]+`)
+// Letters, combining marks, digits, apostrophes and alias characters: D'Arcy, दीपक, bo.chen, bo+ops.
+var mentionWord = regexp.MustCompile(`^[\p{L}\p{M}\p{N}._'\x{2019}+-]+`)
 
 // resolver maps the text after an "@" to a chat member and the bytes it used.
 type resolver func(rest string) (*domain.Person, int, error)

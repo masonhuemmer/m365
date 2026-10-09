@@ -82,7 +82,7 @@ func (m *mentioner) byFullName(rest string) (*domain.Person, int, error) {
 	case 1:
 		return m.mentionable(best[0], bestLen)
 	}
-	return nil, 0, domain.Usagef("%q matches several chat members (%s); pass a chat id", best[0].Name, names(best))
+	return nil, 0, domain.Usagef("%q matches several chat members (%s); write an email name (@name.surname) instead", best[0].Name, names(best))
 }
 
 // wordContinues is true when s carries on the same @ token: more letters or
@@ -126,10 +126,10 @@ func foldPrefix(rest, name string) (int, bool) {
 }
 
 func wordContinues(s string) bool {
-	if after, ok := cutPossessivePrefix(s); ok && !startsWord(strings.TrimLeft(after, "._-'\u2019")) {
+	if after, ok := cutPossessivePrefix(s); ok && !startsWord(strings.TrimLeft(after, "._-+'\u2019")) {
 		return false // "@Bo Chen's change": the 's is not part of the name
 	}
-	return startsWord(strings.TrimLeft(s, "._-'\u2019"))
+	return startsWord(strings.TrimLeft(s, "._-+'\u2019"))
 }
 
 func startsWord(s string) bool {

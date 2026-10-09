@@ -132,3 +132,23 @@ func TestMentionManyDistinctUnknownHandlesIsFast(t *testing.T) {
 		t.Fatalf("took %v", d)
 	}
 }
+
+// Fourteenth review round.
+
+func TestMentionPlusAddressedAlias(t *testing.T) {
+	st := chatOf(person("u-bo", "Bo", "bo@example.com"), person("u-bc", "Boris Chen", "bo+ops@partner.example.com"), person("u-me", "Me", "self@example.com"))
+	if _, err := send(t, st, "@bo+ops please look", func(in *SendInput) { in.DryRun = false }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-bc" {
+		t.Fatalf("%+v %q", st.last.Mentions, st.last.Rendered.Content)
+	}
+}
+
+func TestMentionDuplicateNameErrorSuggestsAnAlias(t *testing.T) {
+	st := chatOf(person("u1", "Ajay Mathew", "ajay.m1@example.com"), person("u2", "Ajay Mathew", "ajay.m2@example.com"), person("u-me", "Me", "self@example.com"))
+	_, err := send(t, st, "@Ajay Mathew look", func(in *SendInput) { in.DryRun = false })
+	if err == nil || strings.Contains(err.Error(), "chat id") || !strings.Contains(err.Error(), "email name") {
+		t.Fatalf("error should suggest an email name, not a chat id: %v", err)
+	}
+}
