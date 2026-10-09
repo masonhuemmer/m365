@@ -230,3 +230,19 @@ func TestMentionUppercasePossessives(t *testing.T) {
 		t.Fatalf("first name: %+v", st.last.Mentions)
 	}
 }
+
+// Ninth review round: a unique name split by formatting is not an ambiguity.
+func TestMentionSplitUniqueNameIsNotReportedAsAmbiguous(t *testing.T) {
+	st := chatOf(person("u-am", "Ajay Mathew", ""), person("u-as", "Ajay Singh", ""), person("u-me", "Me", "self@example.com"))
+	out, err := send(t, st, "@Ajay **Singh** please look", func(in *SendInput) { in.MD = true })
+	if err != nil {
+		t.Fatalf("blocked the message: %v", err)
+	}
+	m := out.(map[string]any)
+	if _, ok := m["mentions"]; ok {
+		t.Fatalf("mentioned %v", m["mentions"])
+	}
+	if got := m["unresolved_mentions"]; !equalStrings(got, []string{"@Ajay Singh"}) {
+		t.Fatalf("unresolved %v", got)
+	}
+}

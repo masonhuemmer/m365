@@ -186,20 +186,19 @@ func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() 
 		if plain[i] != '@' || !m.atWordStart(plain, i) {
 			continue
 		}
-		who, n, err := match(plain[i+1:])
+		// Resolve against everything visible on the line, read through inline
+		// tags, so formatting can never change who is meant. A name that crosses
+		// a tag ("@Ajay **Singh**") is left as text and reported, not guessed.
+		whole := plain[i+1:] + ahead()
+		who, n, err := match(whole)
 		if err != nil {
 			return "", err
 		}
 		if who == nil {
 			continue
 		}
-		// A name that runs to the end of this text may continue past an inline tag
-		// ("@Bo<strong> Chen</strong>"). Resolve the whole visible token and
-		// only mention the person if it is the same one; never guess.
-		if ok, err := m.sameWhenWhole(plain[i+1:], who, n, match, ahead); err != nil {
-			return "", err
-		} else if !ok {
-			m.noteUnresolved("@" + plain[i+1:i+1+n])
+		if n > len(plain)-i-1 {
+			m.noteUnresolved("@" + whole[:n])
 			continue
 		}
 		out.WriteString(html.EscapeString(plain[last:i]))
@@ -211,22 +210,6 @@ func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() 
 	}
 	out.WriteString(html.EscapeString(plain[last:]))
 	return out.String(), nil
-}
-
-// sameWhenWhole re-resolves a name against the visible text that follows it on
-// the line, read through inline tags. It is the same mention only if the longer
-// text still names the same member in the same number of bytes, so formatting
-// can never change who gets notified.
-func (m *mentioner) sameWhenWhole(rest string, who *domain.Person, n int, match resolver, ahead func() string) (bool, error) {
-	more := ahead()
-	if more == "" {
-		return true, nil
-	}
-	whole, wn, err := match(rest + more)
-	if err != nil {
-		return false, err
-	}
-	return whole != nil && whole.ID == who.ID && whole.Name == who.Name && wn == n, nil
 }
 
 func (m *mentioner) atWordStart(s string, i int) bool {
