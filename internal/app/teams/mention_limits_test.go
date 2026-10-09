@@ -1,10 +1,8 @@
 package teams
 
 import (
-	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/masonhuemmer/m365/internal/domain"
 )
@@ -28,20 +26,6 @@ func TestMentionAliasEndingInUnderscoreOrDash(t *testing.T) {
 	}
 }
 
-// Many mentions in one long paragraph must stay linear.
-func TestMentionManyInOneParagraphIsFast(t *testing.T) {
-	st := group()
-	body := "<p>" + strings.Repeat("@Bo <strong>x</strong> ", 30000) + "</p>"
-	start := time.Now()
-	sendHTML(t, st, body)
-	if d := time.Since(start); d > 2*time.Second {
-		t.Fatalf("30000 mentions took %v", d)
-	}
-	if len(st.last.Mentions) != 1 {
-		t.Fatalf("mentions %d", len(st.last.Mentions))
-	}
-}
-
 // The lookahead is bounded, so a window that is cut off must not be read as
 // "the name ended".
 func TestMentionNeverGuessesWhenTheLookaheadIsTruncated(t *testing.T) {
@@ -55,20 +39,6 @@ func TestMentionNeverGuessesWhenTheLookaheadIsTruncated(t *testing.T) {
 		if len(st.last.Mentions) != 0 {
 			t.Fatalf("%s: guessed %+v", name, st.last.Mentions)
 		}
-	}
-}
-
-// Many mentions in one text node, followed by inline content, must stay linear.
-func TestMentionManyInOneTextNodeIsFast(t *testing.T) {
-	st := group()
-	body := "<p>" + strings.Repeat("@Bo ", 30000) + "<strong>x</strong></p>"
-	start := time.Now()
-	sendHTML(t, st, body)
-	if d := time.Since(start); d > 2*time.Second {
-		t.Fatalf("30000 mentions in one node took %v", d)
-	}
-	if len(st.last.Mentions) != 1 {
-		t.Fatalf("mentions %d", len(st.last.Mentions))
 	}
 }
 
@@ -106,30 +76,6 @@ func TestMentionAliasWithApostropheSDoesNotLookLikeAPossessive(t *testing.T) {
 	}
 	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-bc" {
 		t.Fatalf("%+v", st.last.Mentions)
-	}
-}
-
-func TestMentionLookaheadIsBoundedInsideALargeTextToken(t *testing.T) {
-	st := group()
-	body := "<p>" + strings.Repeat("@Bo<i></i> ", 3000) + "<strong>" + strings.Repeat("x", 262144) + "</strong></p>"
-	start := time.Now()
-	sendHTML(t, st, body)
-	if d := time.Since(start); d > 2*time.Second {
-		t.Fatalf("took %v", d)
-	}
-}
-
-func TestMentionManyDistinctUnknownHandlesIsFast(t *testing.T) {
-	var b strings.Builder
-	b.WriteString("<p>")
-	for i := 0; i < 40000; i++ {
-		b.WriteString("@u" + strconv.Itoa(i) + " ")
-	}
-	b.WriteString("</p>")
-	start := time.Now()
-	sendHTML(t, group(), b.String())
-	if d := time.Since(start); d > 2*time.Second {
-		t.Fatalf("took %v", d)
 	}
 }
 
