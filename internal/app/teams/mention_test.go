@@ -207,3 +207,42 @@ func TestMentionAfterNonBreakingSpace(t *testing.T) {
 		t.Fatalf("plain nbsp: %q", st.last.Rendered.Content)
 	}
 }
+
+// Second review round.
+
+func TestMentionAliasWithRepeatedSeparatorsBeatsShorterName(t *testing.T) {
+	st := chatOf(person("u-bo", "Bo", "bo@example.com"), person("u-bc", "Bo Chen", "bo__chen@example.com"), person("u-me", "Me", "self@example.com"))
+	if _, err := send(t, st, "@bo__chen look", func(in *SendInput) { in.DryRun = false }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-bc" {
+		t.Fatalf("%+v %q", st.last.Mentions, st.last.Rendered.Content)
+	}
+}
+
+// A name that visibly carries on after an inline tag is not the shorter name.
+func TestMentionNeverGuessesWhenFormattingSplitsTheName(t *testing.T) {
+	members := []domain.Person{person("u-bo", "Bo", "bo@example.com"), person("u-bc", "Bo Chen", "bo.chen@example.com"), person("u-me", "Me", "self@example.com")}
+	for _, body := range []string{`<p>@Bo<strong>.chen</strong> hi</p>`, `<p>@Bo<em>b</em> hi</p>`} {
+		st := chatOf(members...)
+		sendHTML(t, st, body)
+		if len(st.last.Mentions) != 0 {
+			t.Fatalf("%s mentioned %+v", body, st.last.Mentions)
+		}
+	}
+	st := chatOf(members...)
+	sendHTML(t, st, `<p>@Bo<strong> please</strong></p>`)
+	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-bo" {
+		t.Fatalf("a space after the tag ends the name: %+v", st.last.Mentions)
+	}
+}
+
+func TestMentionAfterHrAndPre(t *testing.T) {
+	for _, body := range []string{`status<hr>@Ajay`, `<pre>command</pre>@Ajay`} {
+		st := group()
+		sendHTML(t, st, body)
+		if len(st.last.Mentions) != 1 {
+			t.Fatalf("%s: %q", body, st.last.Rendered.Content)
+		}
+	}
+}

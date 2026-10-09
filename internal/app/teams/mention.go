@@ -68,40 +68,79 @@ type mentioner struct {
 	prev       rune // last visible character, carried across inline tags
 }
 
-// rewrite tokenizes the HTML and mentions people in text only: never inside
-// tags, comments, code blocks or links.
-func (m *mentioner) rewrite(content string, match resolver) (string, error) {
+type htmlToken struct {
+	tt   xhtml.TokenType
+	raw  string
+	name string
+}
+
+func tokenize(content string) ([]htmlToken, error) {
 	z := xhtml.NewTokenizer(strings.NewReader(content))
-	var out strings.Builder
-	skip := 0
-	m.prev = '\n'
+	var toks []htmlToken
 	for {
 		tt := z.Next()
 		if tt == xhtml.ErrorToken {
 			if z.Err() != io.EOF {
-				return "", domain.Usage("could not read the message HTML")
+				return nil, domain.Usage("could not read the message HTML")
 			}
-			return out.String(), nil
+			return toks, nil
 		}
-		raw := string(z.Raw())
+		t := htmlToken{tt: tt, raw: string(z.Raw())}
 		switch tt {
 		case xhtml.StartTagToken, xhtml.EndTagToken, xhtml.SelfClosingTagToken:
 			name, _ := z.TagName()
-			skip = max(0, skip+skipDelta(tt, string(name)))
-			if breaksLine(string(name)) {
+			t.name = string(name)
+		}
+		toks = append(toks, t)
+	}
+}
+
+// aheadText is the visible text that follows token k on the same line, read
+// through inline tags, so a name split by <strong> is seen whole.
+func aheadText(toks []htmlToken, k int) string {
+	var b strings.Builder
+	for _, t := range toks[k+1:] {
+		switch t.tt {
+		case xhtml.StartTagToken, xhtml.EndTagToken, xhtml.SelfClosingTagToken:
+			if breaksLine(t.name) {
+				return b.String()
+			}
+		case xhtml.TextToken:
+			b.WriteString(html.UnescapeString(t.raw))
+		}
+	}
+	return b.String()
+}
+
+// rewrite mentions people in text only: never inside tags, comments, code
+// blocks or links.
+func (m *mentioner) rewrite(content string, match resolver) (string, error) {
+	toks, err := tokenize(content)
+	if err != nil {
+		return "", err
+	}
+	var out strings.Builder
+	skip := 0
+	m.prev = '\n'
+	for k, t := range toks {
+		switch t.tt {
+		case xhtml.StartTagToken, xhtml.EndTagToken, xhtml.SelfClosingTagToken:
+			skip = max(0, skip+skipDelta(t.tt, t.name))
+			if breaksLine(t.name) {
 				m.prev = '\n'
 			}
-			out.WriteString(raw)
+			out.WriteString(t.raw)
 		case xhtml.TextToken:
-			text, err := m.text(raw, skip > 0, match)
+			text, err := m.text(t.raw, skip > 0, match, func() string { return aheadText(toks, k) })
 			if err != nil {
 				return "", err
 			}
 			out.WriteString(text)
 		default:
-			out.WriteString(raw)
+			out.WriteString(t.raw)
 		}
 	}
+	return out.String(), nil
 }
 
 // skipDelta counts how deep we are inside <code>, <pre> and <a>.
@@ -124,13 +163,13 @@ func skipDelta(tt xhtml.TokenType, name string) int {
 // after one is at a word start. Inline tags like <strong> do not break.
 func breaksLine(name string) bool {
 	switch name {
-	case "p", "br", "div", "li", "ul", "ol", "tr", "td", "th", "blockquote", "h1", "h2", "h3", "h4", "h5", "h6":
+	case "p", "br", "div", "li", "ul", "ol", "tr", "td", "th", "blockquote", "pre", "hr", "h1", "h2", "h3", "h4", "h5", "h6":
 		return true
 	}
 	return false
 }
 
-func (m *mentioner) text(raw string, skipped bool, match resolver) (string, error) {
+func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() string) (string, error) {
 	plain := html.UnescapeString(raw)
 	defer func() {
 		if r, _ := utf8.DecodeLastRuneInString(plain); r != utf8.RuneError && plain != "" {
@@ -151,6 +190,13 @@ func (m *mentioner) text(raw string, skipped bool, match resolver) (string, erro
 			return "", err
 		}
 		if who == nil {
+			continue
+		}
+		// The name reaches the end of this text and the line carries on past an
+		// inline tag ("@Bo<strong>.chen</strong>"): the visible name is longer,
+		// so do not guess which member it means.
+		if i+1+n == len(plain) && wordContinues(ahead()) {
+			m.noteUnresolved("@" + plain[i+1:i+1+n])
 			continue
 		}
 		out.WriteString(html.EscapeString(plain[last:i]))
