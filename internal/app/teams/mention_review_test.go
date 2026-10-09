@@ -200,3 +200,15 @@ func TestMentionNeverGuessesWhenALaterSegmentCrossesATag(t *testing.T) {
 		t.Fatalf("guessed %+v from %q", st.last.Mentions, st.last.Rendered.Content)
 	}
 }
+
+// Seventh review round: HTML collapses whitespace, so the name must too.
+func TestMentionFullNameAcrossCollapsedWhitespace(t *testing.T) {
+	members := []domain.Person{person("u-a", "Ann Marie", ""), person("u-aj", "Ann Marie Jones", ""), person("u-me", "Me", "self@example.com")}
+	for _, body := range []string{"<p>@Ann Marie  Jones please look</p>", "<p>@Ann Marie\nJones please look</p>", "<p>@Ann Marie&nbsp;Jones please look</p>"} {
+		st := chatOf(members...)
+		sendHTML(t, st, body)
+		if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-aj" {
+			t.Fatalf("%q: %+v", body, st.last.Mentions)
+		}
+	}
+}

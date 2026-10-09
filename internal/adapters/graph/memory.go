@@ -50,7 +50,7 @@ func Seed() *Memory {
 		Received: "2026-01-01T01:00:00Z",
 		Body:     "own-reply",
 	}
-	c1 := domain.Chat{ID: "chat-1", Type: "oneOnOne", Topic: "Alice", Members: []domain.Person{{Name: "Alice", Address: "alice@example.com"}}}
+	c1 := domain.Chat{ID: "chat-1", Type: "oneOnOne", Topic: "Alice", Members: []domain.Person{{ID: "u-alice", Name: "Alice", Address: "alice@example.com"}}}
 	cm := domain.ChatMessage{
 		ID: "cmsg-1", ChatID: "chat-1", From: "Alice", Created: "2026-01-01T00:00:00Z",
 		Text: "hi", Attachments: []domain.Attachment{att},
@@ -252,7 +252,7 @@ func (m *Memory) Download(_ context.Context, messageID, attach string) ([]byte, 
 }
 
 func seedChats(c1 domain.Chat) []domain.Chat {
-	chats := []domain.Chat{c1, {ID: "chat-2", Type: "group", Topic: "NOC", Members: []domain.Person{{Name: "Bob"}}}}
+	chats := []domain.Chat{c1, {ID: "chat-2", Type: "group", Topic: "NOC", Members: []domain.Person{{ID: "u-bob", Name: "Bob"}}}}
 	for i := 0; i < 18; i++ {
 		chats = append(chats, domain.Chat{
 			ID: fmt.Sprintf("pad-%d", i), Type: "oneOnOne",
@@ -260,9 +260,9 @@ func seedChats(c1 domain.Chat) []domain.Chat {
 		})
 	}
 	return append(chats,
-		domain.Chat{ID: "chat-ajay", Type: "oneOnOne", Members: []domain.Person{{Name: "Ajay Kumar", Address: "ajay@example.com"}, {Name: "Test User", Address: "user@example.com"}}},
-		domain.Chat{ID: "chat-group-ajay", Type: "group", Topic: "Project", Members: []domain.Person{{Name: "Ajay Kumar", Address: "ajay@example.com"}, {Name: "Other"}}},
-		domain.Chat{ID: "chat-noc-dev", Type: "group", Topic: "NOC-Dev", Members: []domain.Person{{Name: "Ops"}}},
+		domain.Chat{ID: "chat-ajay", Type: "oneOnOne", Members: []domain.Person{{ID: "u-ajay", Name: "Ajay Kumar", Address: "ajay@example.com"}, {ID: "u-test", Name: "Test User", Address: "user@example.com"}}},
+		domain.Chat{ID: "chat-group-ajay", Type: "group", Topic: "Project", Members: []domain.Person{{ID: "u-ajay", Name: "Ajay Kumar", Address: "ajay@example.com"}, {ID: "u-other", Name: "Other"}}},
+		domain.Chat{ID: "chat-noc-dev", Type: "group", Topic: "NOC-Dev", Members: []domain.Person{{ID: "u-ops", Name: "Ops"}}},
 	)
 }
 

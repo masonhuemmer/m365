@@ -52,8 +52,8 @@ func (m *mentioner) mentionable(p domain.Person, n int) (*domain.Person, int, er
 func (m *mentioner) byFullName(rest string) (*domain.Person, int, error) {
 	best, bestLen := []domain.Person{}, 0
 	for _, p := range m.members {
-		n := len(p.Name)
-		if n == 0 || n > len(rest) || !strings.EqualFold(rest[:n], p.Name) || wordContinues(rest[n:]) {
+		n, ok := foldPrefix(rest, p.Name)
+		if !ok || wordContinues(rest[n:]) {
 			continue
 		}
 		switch {
@@ -75,6 +75,43 @@ func (m *mentioner) byFullName(rest string) (*domain.Person, int, error) {
 // wordContinues is true when s carries on the same @ token: more letters or
 // digits, or alias separators (. _ - and apostrophes) followed by one, as in
 // "@bo.chen", "@bo__chen" or "@Al'Amin". It lets the email-alias match win over a shorter full name.
+// foldPrefix reports whether rest starts with name, ignoring case and treating
+// any run of whitespace (spaces, newlines, non-breaking spaces) as one space,
+// the way HTML shows it. It returns how many bytes of rest the name covers.
+func foldPrefix(rest, name string) (int, bool) {
+	name = strings.Join(strings.Fields(name), " ")
+	if name == "" {
+		return 0, false
+	}
+	i := 0
+	for _, want := range name {
+		if unicode.IsSpace(want) {
+			j := i
+			for j < len(rest) {
+				r, w := utf8.DecodeRuneInString(rest[j:])
+				if !unicode.IsSpace(r) {
+					break
+				}
+				j += w
+			}
+			if j == i {
+				return 0, false
+			}
+			i = j
+			continue
+		}
+		if i >= len(rest) {
+			return 0, false
+		}
+		r, w := utf8.DecodeRuneInString(rest[i:])
+		if !strings.EqualFold(string(r), string(want)) {
+			return 0, false
+		}
+		i += w
+	}
+	return i, true
+}
+
 func wordContinues(s string) bool {
 	for _, possessive := range []string{"'s", "\u2019s"} {
 		if after, ok := strings.CutPrefix(s, possessive); ok && !startsWord(after) {
