@@ -52,5 +52,15 @@ func dryRunResult(in SendInput, problems any) map[string]any {
 	if len(in.ShareWith) > 0 {
 		out["share_with"] = in.ShareWith
 	}
+	if len(in.Mentions) > 0 {
+		who := make([]string, 0, len(in.Mentions))
+		for _, m := range in.Mentions {
+			who = append(who, m.Name)
+		}
+		out["mentions"] = who
+	}
+	if len(in.UnresolvedMentions) > 0 {
+		out["unresolved_mentions"] = in.UnresolvedMentions
+	}
 	return out
 }

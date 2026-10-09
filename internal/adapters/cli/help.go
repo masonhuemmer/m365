@@ -121,6 +121,7 @@ Optional: --attach (repeatable) --html --format md --dry-run --preview --note-to
 --preview shows the message as text in a box and never sends; not with --json.
 --note-to-self posts to Teams Notes (48:notes). Do not combine with --to or a chat id.
 Plain text keeps paragraphs and line breaks (sent as HTML).
+Type @Name (@Ajay, @Ajay Mathew) to mention a member of that chat; --dry-run shows mentions and unresolved_mentions. A name matching two members fails; an unknown @name stays plain text.
 --format md converts a markdown subset to HTML (headings, **bold**, lists, links, inline code in backticks, fenced code). --html posts the body as HTML already. Not both.
 --to and chat id together exit 3. Attachment caps: 10 MiB per file, 10 files.
 --attach uploads each file to your OneDrive ("Microsoft Teams Chat Files"), gives every other chat member read access (nobody is emailed), and posts the message with a file card. Notes (--note-to-self) keeps the file private. A member with no email address fails the send before anything is uploaded; --dry-run shows share_with.
