@@ -4,7 +4,7 @@ A command-line tool for **your** Microsoft 365 account: Outlook, Teams, calendar
 
 JSON on stdout by default. Add `--human` if you want plain text. Writes stay dry-run until you drop `--dry-run` (or, for agents, set `write_opt_in`).
 
-Current release: **0.4.0**.
+Current release: **0.5.0**.
 
 ## Install
 
@@ -13,7 +13,7 @@ Current release: **0.4.0**.
 ```sh
 brew tap masonhuemmer/tap
 brew install m365
-m365 --version    # 0.4.0
+m365 --version    # 0.5.0
 ```
 
 Upgrade later with `brew update && brew upgrade m365`.
