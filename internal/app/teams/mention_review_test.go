@@ -189,3 +189,14 @@ func TestMentionPossessiveAfterAFullName(t *testing.T) {
 		t.Fatalf("%+v %q", st.last.Mentions, st.last.Rendered.Content)
 	}
 }
+
+// Sixth review round: a later segment of the name crosses an inline tag.
+func TestMentionNeverGuessesWhenALaterSegmentCrossesATag(t *testing.T) {
+	st := chatOf(person("u-bo", "Bo", "bo@example.com"), person("u-bc", "Bo Chen", "bo.chen@example.com"), person("u-me", "Me", "self@example.com"))
+	if _, err := send(t, st, "@Bo Ch**en** please look", func(in *SendInput) { in.DryRun = false; in.MD = true }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 0 {
+		t.Fatalf("guessed %+v from %q", st.last.Mentions, st.last.Rendered.Content)
+	}
+}
