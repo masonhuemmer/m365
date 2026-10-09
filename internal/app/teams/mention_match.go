@@ -62,9 +62,22 @@ func (m *mentioner) byFullName(rest string) (*domain.Person, int, error) {
 	return nil, 0, domain.Usagef("%q matches several chat members (%s); pass a chat id", best[0].Name, names(best))
 }
 
+// wordContinues is true when s carries on the same @ token: more letters or
+// digits, or an alias separator (. _ -) that is followed by one, as in
+// "@bo.chen". It lets the email-alias match win over a shorter full name.
 func wordContinues(s string) bool {
-	r, _ := utf8.DecodeRuneInString(s)
-	return s != "" && (unicode.IsLetter(r) || unicode.IsDigit(r))
+	r, n := utf8.DecodeRuneInString(s)
+	if s == "" {
+		return false
+	}
+	if unicode.IsLetter(r) || unicode.IsDigit(r) {
+		return true
+	}
+	if r == '.' || r == '_' || r == '-' {
+		next, _ := utf8.DecodeRuneInString(s[n:])
+		return unicode.IsLetter(next) || unicode.IsDigit(next)
+	}
+	return false
 }
 
 // byWord matches one word: an email name part (@ajay.mathew) first, then a

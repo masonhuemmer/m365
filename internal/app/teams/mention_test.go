@@ -142,3 +142,68 @@ func equalStrings(v any, want []string) bool {
 	}
 	return true
 }
+
+// Review findings: each case below mentioned the wrong person, corrupted HTML,
+// or missed a valid mention before the HTML was tokenized properly.
+
+func sendHTML(t *testing.T, st *stub, body string) {
+	t.Helper()
+	if _, err := send(t, st, body, func(in *SendInput) { in.DryRun = false; in.HTML = true }); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMentionEmailAliasBeatsShorterFullName(t *testing.T) {
+	st := chatOf(person("u-bo", "Bo", "bo@example.com"), person("u-bc", "Bo Chen", "bo.chen@example.com"), person("u-me", "Me", "self@example.com"))
+	if _, err := send(t, st, "@bo.chen please look", func(in *SendInput) { in.DryRun = false }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-bc" {
+		t.Fatalf("mentions %+v body %q", st.last.Mentions, st.last.Rendered.Content)
+	}
+}
+
+func TestMentionLeavesHTMLCommentsAlone(t *testing.T) {
+	st := group()
+	body := `<!-- x > @Ajay --><p>Hello</p>`
+	sendHTML(t, st, body)
+	if st.last.Rendered.Content != body || len(st.last.Mentions) != 0 {
+		t.Fatalf("comment changed: %q %+v", st.last.Rendered.Content, st.last.Mentions)
+	}
+}
+
+func TestMentionWordBoundaryCarriesAcrossInlineTags(t *testing.T) {
+	st := group()
+	sendHTML(t, st, `<p>mail user<strong>@Ajay</strong>.example</p>`)
+	if len(st.last.Mentions) != 0 {
+		t.Fatalf("mentioned inside an email address: %q", st.last.Rendered.Content)
+	}
+	st = group()
+	sendHTML(t, st, `<p>hi <strong>@Ajay</strong></p><p>@Bo</p>`)
+	if len(st.last.Mentions) != 2 {
+		t.Fatalf("missed mentions after a space or a block tag: %q", st.last.Rendered.Content)
+	}
+}
+
+func TestMentionSkipsLinksWithWhitespaceInTheTag(t *testing.T) {
+	st := group()
+	sendHTML(t, st, "<p><a\r\nhref=\"https://x.test\">@Ajay</a> and @Bo</p>")
+	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-bo" {
+		t.Fatalf("mentions %+v body %q", st.last.Mentions, st.last.Rendered.Content)
+	}
+}
+
+func TestMentionAfterNonBreakingSpace(t *testing.T) {
+	st := group()
+	sendHTML(t, st, `<p>Hello&nbsp;@Ajay</p>`)
+	if len(st.last.Mentions) != 1 {
+		t.Fatalf("html nbsp: %q", st.last.Rendered.Content)
+	}
+	st = group()
+	if _, err := send(t, st, "Hello @Ajay", func(in *SendInput) { in.DryRun = false }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 1 {
+		t.Fatalf("plain nbsp: %q", st.last.Rendered.Content)
+	}
+}
