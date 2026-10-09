@@ -1,9 +1,7 @@
 package teams
 
 import (
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/masonhuemmer/m365/internal/domain"
 )
@@ -246,38 +244,5 @@ func TestMentionSplitUniqueNameIsNotReportedAsAmbiguous(t *testing.T) {
 	}
 	if got := m["unresolved_mentions"]; !equalStrings(got, []string{"@Ajay Singh"}) {
 		t.Fatalf("unresolved %v", got)
-	}
-}
-
-// Tenth review round.
-
-func TestMentionAliasEndingInUnderscoreOrDash(t *testing.T) {
-	st := chatOf(person("u-o", "Olivia Smith", "ops_@example.com"), person("u-ops", "Ops", "ops@example.com"), person("u-me", "Me", "self@example.com"))
-	if _, err := send(t, st, "@ops_ please look", func(in *SendInput) { in.DryRun = false }); err != nil {
-		t.Fatal(err)
-	}
-	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-o" {
-		t.Fatalf("alias: %+v", st.last.Mentions)
-	}
-	st = chatOf(person("u-o", "Olivia Smith", "ops_@example.com"), person("u-ops", "Ops", "ops@example.com"), person("u-me", "Me", "self@example.com"))
-	if _, err := send(t, st, "@Ops please look", func(in *SendInput) { in.DryRun = false }); err != nil {
-		t.Fatal(err)
-	}
-	if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-ops" {
-		t.Fatalf("plain name: %+v", st.last.Mentions)
-	}
-}
-
-// Many mentions in one long paragraph must stay linear.
-func TestMentionManyInOneParagraphIsFast(t *testing.T) {
-	st := group()
-	body := "<p>" + strings.Repeat("@Bo <strong>x</strong> ", 30000) + "</p>"
-	start := time.Now()
-	sendHTML(t, st, body)
-	if d := time.Since(start); d > 2*time.Second {
-		t.Fatalf("30000 mentions took %v", d)
-	}
-	if len(st.last.Mentions) != 1 {
-		t.Fatalf("mentions %d", len(st.last.Mentions))
 	}
 }

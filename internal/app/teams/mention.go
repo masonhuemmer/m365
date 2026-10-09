@@ -3,7 +3,6 @@ package teams
 import (
 	"context"
 	"html"
-	"io"
 	"regexp"
 	"strconv"
 	"strings"
@@ -69,57 +68,6 @@ type mentioner struct {
 	prev       rune // last visible character, carried across inline tags
 }
 
-type htmlToken struct {
-	tt   xhtml.TokenType
-	raw  string
-	name string
-}
-
-func tokenize(content string) ([]htmlToken, error) {
-	z := xhtml.NewTokenizer(strings.NewReader(content))
-	var toks []htmlToken
-	for {
-		tt := z.Next()
-		if tt == xhtml.ErrorToken {
-			if z.Err() != io.EOF {
-				return nil, domain.Usage("could not read the message HTML")
-			}
-			return toks, nil
-		}
-		t := htmlToken{tt: tt, raw: string(z.Raw())}
-		switch tt {
-		case xhtml.StartTagToken, xhtml.EndTagToken, xhtml.SelfClosingTagToken:
-			name, _ := z.TagName()
-			t.name = string(name)
-		}
-		toks = append(toks, t)
-	}
-}
-
-// aheadLimit bounds how far past a name we read: display names and aliases are
-// short, and reading the rest of a long line for every "@" would be quadratic.
-const aheadLimit = 256
-
-// aheadText is the visible text that follows token k on the same line, read
-// through inline tags, so a name split by <strong> is seen whole.
-func aheadText(toks []htmlToken, k int) string {
-	var b strings.Builder
-	for visited, t := range toks[k+1:] {
-		if visited >= aheadLimit || b.Len() >= aheadLimit {
-			break
-		}
-		switch t.tt {
-		case xhtml.StartTagToken, xhtml.EndTagToken, xhtml.SelfClosingTagToken:
-			if breaksLine(t.name) {
-				return b.String()
-			}
-		case xhtml.TextToken:
-			b.WriteString(html.UnescapeString(t.raw))
-		}
-	}
-	return b.String()
-}
-
 // rewrite mentions people in text only: never inside tags, comments, code
 // blocks or links.
 func (m *mentioner) rewrite(content string, match resolver) (string, error) {
@@ -139,7 +87,7 @@ func (m *mentioner) rewrite(content string, match resolver) (string, error) {
 			}
 			out.WriteString(t.raw)
 		case xhtml.TextToken:
-			text, err := m.text(t.raw, skip > 0, match, func() string { return aheadText(toks, k) })
+			text, err := m.text(t.raw, skip > 0, match, func() (string, bool) { return aheadText(toks, k) })
 			if err != nil {
 				return "", err
 			}
@@ -151,33 +99,7 @@ func (m *mentioner) rewrite(content string, match resolver) (string, error) {
 	return out.String(), nil
 }
 
-// skipDelta counts how deep we are inside <code>, <pre> and <a>.
-func skipDelta(tt xhtml.TokenType, name string) int {
-	switch name {
-	case "code", "pre", "a":
-	default:
-		return 0
-	}
-	switch tt {
-	case xhtml.StartTagToken:
-		return 1
-	case xhtml.EndTagToken:
-		return -1
-	}
-	return 0
-}
-
-// breaksLine is true for tags after which a new word starts, so "@" right
-// after one is at a word start. Inline tags like <strong> do not break.
-func breaksLine(name string) bool {
-	switch name {
-	case "p", "br", "div", "li", "ul", "ol", "tr", "td", "th", "blockquote", "pre", "hr", "h1", "h2", "h3", "h4", "h5", "h6":
-		return true
-	}
-	return false
-}
-
-func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() string) (string, error) {
+func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() (string, bool)) (string, error) {
 	plain := html.UnescapeString(raw)
 	defer func() {
 		if r, _ := utf8.DecodeLastRuneInString(plain); r != utf8.RuneError && plain != "" {
@@ -196,7 +118,8 @@ func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() 
 		// Resolve against everything visible on the line, read through inline
 		// tags, so formatting can never change who is meant. A name that crosses
 		// a tag ("@Ajay **Singh**") is left as text and reported, not guessed.
-		whole := plain[i+1:] + ahead()
+		rest := plain[i+1:]
+		whole, truncated := window(rest, ahead)
 		who, n, err := match(whole)
 		if err != nil {
 			return "", err
@@ -204,7 +127,9 @@ func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() 
 		if who == nil {
 			continue
 		}
-		if n > len(plain)-i-1 {
+		// Cut-off text proves nothing about where the name ends, and a name that
+		// crosses an inline tag cannot be rewritten: leave both as text.
+		if n > len(rest) || (truncated && strings.TrimSpace(whole[n:]) == "") {
 			m.noteUnresolved("@" + whole[:n])
 			continue
 		}
