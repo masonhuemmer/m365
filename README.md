@@ -32,6 +32,15 @@ scoop install m365
 m365 --version
 ```
 
+### Windows (Chocolatey)
+
+```powershell
+choco install m365
+m365 --version
+```
+
+Upgrade later with `choco upgrade m365`. Chocolatey reviews each version before it is listed, so it can trail the latest release by a few days. The package page is [community.chocolatey.org/packages/m365](https://community.chocolatey.org/packages/m365).
+
 ### Windows (WinGet)
 
 The first community package is in review: [microsoft/winget-pkgs#439501](https://github.com/microsoft/winget-pkgs/pull/439501). After that merges:
@@ -40,7 +49,7 @@ The first community package is in review: [microsoft/winget-pkgs#439501](https:/
 winget install JacobHuemmer.m365
 ```
 
-Until then, use Scoop or a zip from [Releases](https://github.com/masonhuemmer/m365/releases).
+Until then, use Scoop, Chocolatey or a zip from [Releases](https://github.com/masonhuemmer/m365/releases).
 
 ### From source
 
