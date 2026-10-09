@@ -15,11 +15,21 @@ func (m *mentioner) match(rest string) (*domain.Person, int, error) {
 	if p, n, err := m.byFullName(rest); p != nil || err != nil {
 		return p, n, err
 	}
-	word := strings.TrimRight(mentionWord.FindString(rest), "._-")
+	word := strings.TrimRight(mentionWord.FindString(rest), "._-'\u2019")
 	if word == "" {
 		return nil, 0, nil
 	}
 	found := m.byWord(word)
+	if len(found) == 0 { // "@Ajay's": the name is Ajay
+		for _, suffix := range []string{"'s", "\u2019s"} {
+			if trimmed, ok := strings.CutSuffix(word, suffix); ok && trimmed != "" {
+				if found = m.byWord(trimmed); len(found) > 0 {
+					word = trimmed
+					break
+				}
+			}
+		}
+	}
 	switch len(found) {
 	case 0:
 		m.noteUnresolved("@" + word)
@@ -71,7 +81,7 @@ func wordContinues(s string) bool {
 		return false
 	}
 	r, _ := utf8.DecodeRuneInString(rest)
-	return unicode.IsLetter(r) || unicode.IsDigit(r)
+	return unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsMark(r)
 }
 
 // byWord matches one word: an email name part (@ajay.mathew) first, then a

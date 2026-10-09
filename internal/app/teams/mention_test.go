@@ -246,3 +246,40 @@ func TestMentionAfterHrAndPre(t *testing.T) {
 		}
 	}
 }
+
+// Third review round.
+
+func TestMentionNeverGuessesWhenASeparatorEndsTheTextNode(t *testing.T) {
+	st := chatOf(person("u-bo", "Bo", "bo@example.com"), person("u-bc", "Bo Chen", "bo.chen@example.com"), person("u-me", "Me", "self@example.com"))
+	sendHTML(t, st, `<p>@Bo.<strong>chen</strong> please look</p>`)
+	if len(st.last.Mentions) != 0 {
+		t.Fatalf("mentioned %+v", st.last.Mentions)
+	}
+	st = chatOf(person("u-bo", "Bo", "bo@example.com"), person("u-me", "Me", "self@example.com"))
+	sendHTML(t, st, `<p>Thanks @Bo. Please look</p>`)
+	if len(st.last.Mentions) != 1 {
+		t.Fatalf("a sentence-ending period must not block the mention: %q", st.last.Rendered.Content)
+	}
+}
+
+func TestMentionFirstNamesWithApostropheAndCombiningMarks(t *testing.T) {
+	st := chatOf(person("u-d", "D'Arcy Smith", ""), person("u-k", "दीपक शर्मा", ""), person("u-me", "Me", "self@example.com"))
+	if _, err := send(t, st, "@D'Arcy and @दीपक please look", func(in *SendInput) { in.DryRun = false }); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.last.Mentions) != 2 || st.last.Mentions[0].UserID != "u-d" || st.last.Mentions[1].UserID != "u-k" {
+		t.Fatalf("%+v %q", st.last.Mentions, st.last.Rendered.Content)
+	}
+}
+
+func TestMentionPossessiveStillMentionsThePerson(t *testing.T) {
+	for _, text := range []string{"@Ajay's change is in", "@Ajay’s change is in"} {
+		st := group()
+		if _, err := send(t, st, text, func(in *SendInput) { in.DryRun = false }); err != nil {
+			t.Fatal(err)
+		}
+		if len(st.last.Mentions) != 1 || st.last.Mentions[0].UserID != "u-ajay" {
+			t.Fatalf("%q: %+v", text, st.last.Mentions)
+		}
+	}
+}

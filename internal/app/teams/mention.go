@@ -23,7 +23,8 @@ type Mention struct {
 	UserID string
 }
 
-var mentionWord = regexp.MustCompile(`^[\p{L}\p{N}._-]+`)
+// Letters, combining marks, digits, apostrophes and alias separators: D'Arcy, दीपक, bo.chen.
+var mentionWord = regexp.MustCompile(`^[\p{L}\p{M}\p{N}._'\x{2019}-]+`)
 
 // resolver maps the text after an "@" to a chat member and the bytes it used.
 type resolver func(rest string) (*domain.Person, int, error)
@@ -195,7 +196,7 @@ func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() 
 		// The name reaches the end of this text and the line carries on past an
 		// inline tag ("@Bo<strong>.chen</strong>"): the visible name is longer,
 		// so do not guess which member it means.
-		if i+1+n == len(plain) && wordContinues(ahead()) {
+		if wordContinues(tokenTail(plain[i+1+n:], ahead)) {
 			m.noteUnresolved("@" + plain[i+1:i+1+n])
 			continue
 		}
@@ -208,6 +209,15 @@ func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() 
 	}
 	out.WriteString(html.EscapeString(plain[last:]))
 	return out.String(), nil
+}
+
+// tokenTail is what follows a matched name as part of the same token: the rest
+// of this text if it has no space, plus the text after any inline tag.
+func tokenTail(rest string, ahead func() string) string {
+	if strings.IndexFunc(rest, unicode.IsSpace) >= 0 {
+		return rest
+	}
+	return rest + ahead()
 }
 
 func (m *mentioner) atWordStart(s string, i int) bool {
