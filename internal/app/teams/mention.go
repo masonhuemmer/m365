@@ -193,10 +193,12 @@ func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() 
 		if who == nil {
 			continue
 		}
-		// The name reaches the end of this text and the line carries on past an
-		// inline tag ("@Bo<strong>.chen</strong>"): the visible name is longer,
-		// so do not guess which member it means.
-		if wordContinues(tokenTail(plain[i+1+n:], ahead)) {
+		// A name that runs to the end of this text may continue past an inline tag
+		// ("@Bo<strong> Chen</strong>"). Resolve the whole visible token and
+		// only mention the person if it is the same one; never guess.
+		if ok, err := m.sameWhenWhole(plain[i+1:], who, n, match, ahead); err != nil {
+			return "", err
+		} else if !ok {
 			m.noteUnresolved("@" + plain[i+1:i+1+n])
 			continue
 		}
@@ -211,13 +213,22 @@ func (m *mentioner) text(raw string, skipped bool, match resolver, ahead func() 
 	return out.String(), nil
 }
 
-// tokenTail is what follows a matched name as part of the same token: the rest
-// of this text if it has no space, plus the text after any inline tag.
-func tokenTail(rest string, ahead func() string) string {
-	if strings.IndexFunc(rest, unicode.IsSpace) >= 0 {
-		return rest
+// sameWhenWhole re-resolves a name that reaches the end of its text against
+// the visible text that follows it on the line. It is the same mention only if
+// the longer text still names the same member in the same number of bytes.
+func (m *mentioner) sameWhenWhole(rest string, who *domain.Person, n int, match resolver, ahead func() string) (bool, error) {
+	if strings.IndexFunc(rest[n:], unicode.IsSpace) >= 0 {
+		return true, nil // the name ends inside this text
 	}
-	return rest + ahead()
+	more := ahead()
+	if more == "" {
+		return true, nil
+	}
+	whole, wn, err := match(rest + more)
+	if err != nil {
+		return false, err
+	}
+	return whole != nil && whole.ID == who.ID && whole.Name == who.Name && wn == n, nil
 }
 
 func (m *mentioner) atWordStart(s string, i int) bool {

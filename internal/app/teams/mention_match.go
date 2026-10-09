@@ -73,10 +73,10 @@ func (m *mentioner) byFullName(rest string) (*domain.Person, int, error) {
 }
 
 // wordContinues is true when s carries on the same @ token: more letters or
-// digits, or alias separators (. _ -) followed by one, as in "@bo.chen" or
-// "@bo__chen". It lets the email-alias match win over a shorter full name.
+// digits, or alias separators (. _ - and apostrophes) followed by one, as in
+// "@bo.chen", "@bo__chen" or "@Al'Amin". It lets the email-alias match win over a shorter full name.
 func wordContinues(s string) bool {
-	rest := strings.TrimLeft(s, "._-")
+	rest := strings.TrimLeft(s, "._-'\u2019")
 	if rest == "" {
 		return false
 	}
