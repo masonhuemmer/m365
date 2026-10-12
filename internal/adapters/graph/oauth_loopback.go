@@ -6,7 +6,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -15,11 +14,6 @@ import (
 	"github.com/masonhuemmer/m365/internal/app/auth"
 	"github.com/masonhuemmer/m365/internal/domain"
 )
-
-func OpenBrowser(rawURL string) error {
-	// argv to macOS open, not a shell; URL is the OAuth authorize endpoint.
-	return exec.Command("open", rawURL).Start() // #nosec G204
-}
 
 func StartLoopback() (string, func(context.Context) (string, error), error) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
