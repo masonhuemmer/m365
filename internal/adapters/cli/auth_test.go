@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
 
+	"github.com/masonhuemmer/m365/internal/app/auth"
 	"github.com/masonhuemmer/m365/internal/domain"
 )
 
@@ -47,5 +49,20 @@ func TestAuthStatusSignedOutLoginLogout(t *testing.T) {
 	}
 	if c := Run([]string{"m365", "mail", "list"}, d); c != domain.ExitAuth {
 		t.Fatal(c, errw.String())
+	}
+}
+
+func TestAuthLoginDeviceCodeFlag(t *testing.T) {
+	d, _, errw := testDeps()
+	called := false
+	d.DeviceLogin = func(ctx context.Context) (auth.Blob, error) {
+		called = true
+		return auth.Blob{Mail: true}, nil
+	}
+	if code := Run([]string{"m365", "auth", "login", "--device-code"}, d); code != 0 || !called {
+		t.Fatal(code, called, errw.String())
+	}
+	if code := Run([]string{"m365", "auth", "login", "--bogus"}, d); code == 0 {
+		t.Fatal("unknown login flag accepted")
 	}
 }

@@ -35,6 +35,7 @@ type Deps struct {
 	Calendar            calendar.Store
 	Files               files.Store
 	Login               auth.LoginFn
+	DeviceLogin         auth.LoginFn
 	Write               func(string, []byte, bool) error
 	Watch               WatchStore
 	Stdin               io.Reader

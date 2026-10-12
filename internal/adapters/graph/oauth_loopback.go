@@ -3,9 +3,11 @@ package graph
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -69,6 +71,10 @@ func LoginPKCE(ctx context.Context, cfg *oauth2.Config, open auth.BrowserOpener,
 	if err != nil {
 		return auth.Blob{}, domain.Auth(err.Error())
 	}
+	return blobFromToken(ctx, tok), nil
+}
+
+func blobFromToken(ctx context.Context, tok *oauth2.Token) auth.Blob {
 	scope := ""
 	if s, ok := tok.Extra("scope").(string); ok {
 		scope = s
@@ -92,7 +98,7 @@ func LoginPKCE(ctx context.Context, cfg *oauth2.Config, open auth.BrowserOpener,
 			b.Mail, b.Teams = true, true
 		}
 	}
-	return b, nil
+	return b
 }
 
 func fetchMe(ctx context.Context, token string) string {
@@ -126,6 +132,24 @@ func RealLogin(clientID, tenantID string) auth.LoginFn {
 	return func(ctx context.Context) (auth.Blob, error) {
 		cfg := PKCEConfig(clientID, tenantID, "")
 		cfg.Endpoint.AuthStyle = oauth2.AuthStyleInParams
-		return LoginPKCE(ctx, cfg, OpenBrowser, StartLoopback)
+		noBrowser := false
+		open := func(u string) error {
+			err := OpenBrowser(u)
+			noBrowser = err != nil
+			return err
+		}
+		b, err := LoginPKCE(ctx, cfg, open, StartLoopback)
+		if err != nil && noBrowser {
+			fmt.Fprintln(os.Stderr, "No browser could be opened; using device code sign-in.")
+			return deviceLogin(ctx, cfg, os.Stderr)
+		}
+		return b, err
+	}
+}
+
+// RealDeviceLogin signs in with the device code flow: no browser or redirect on this machine.
+func RealDeviceLogin(clientID, tenantID string) auth.LoginFn {
+	return func(ctx context.Context) (auth.Blob, error) {
+		return deviceLogin(ctx, PKCEConfig(clientID, tenantID, ""), os.Stderr)
 	}
 }

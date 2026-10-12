@@ -106,6 +106,12 @@ m365 auth login
 m365 auth status
 ```
 
+On a machine with no browser (SSH, a container, a locked-down Windows PC), use the device code flow. It prints a short code and `https://login.microsoft.com/device`; open that page on any device and enter the code. `m365 auth login` switches to it by itself when no browser can be opened.
+
+```sh
+m365 auth login --device-code
+```
+
 `signed_in` and `session_usable` should be true, with the namespaces you granted (`mail`, `teams`, `calendar`, `files`). Tokens go in the macOS keychain, with a file fallback if needed.
 
 Do not run `auth login` through MCP. If status is not usable, stop and log in from a terminal.

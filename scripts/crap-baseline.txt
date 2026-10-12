@@ -22,7 +22,6 @@
 154.9 internal/app/calendar/ports.go Update
 90.0 internal/adapters/graph/memory_cal.go (*Memory).UpdateEvent
 63.0 internal/adapters/graph/fakecal.go handleCalendarFiles
-42.0 internal/adapters/graph/oauth_loopback.go fetchMe
 42.0 internal/adapters/graph/memory_files.go (*Memory).Move
 42.0 internal/adapters/chatmap/memory.go (*Memory).Remember
 40.9 internal/app/mail/watch.go Watch
@@ -58,7 +57,6 @@
 19.0 internal/adapters/cli/teams.go teamsWatch
 17.6 internal/app/calendar/free.go parseHours
 16.8 internal/adapters/jev/client.go (*Client).Classify
-16.5 internal/adapters/cli/auth.go runAuth
 16.1 internal/domain/msgbody/text.go (*textWriter).end
 15.3 internal/app/calendar/when.go parseUntil
 15.2 internal/adapters/graph/fakecal.go denyWorkload
