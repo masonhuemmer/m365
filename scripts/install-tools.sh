@@ -11,7 +11,11 @@ export GOTOOLCHAIN
 mkdir -p "$ROOT/.tools/bin"
 GOBIN="$ROOT/.tools/bin"
 export GOBIN
-go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
+# gosec v2.29.0 (the latest tag) cannot read Go 1.27's compiler export data and
+# reports "type errors" for every package. Upstream fixed it on main
+# (securego/gosec#1724, #1772); this commit works on Go 1.26.9 and 1.27.2.
+# Go back to a tag as soon as one newer than v2.29.0 is released.
+go install github.com/securego/gosec/v2/cmd/gosec@71577268350e
 go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
 go install github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0
 if [ -d "$HOME/.local/bin" ]; then
