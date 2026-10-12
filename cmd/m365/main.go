@@ -44,6 +44,7 @@ func buildDeps(cfg config.Config, cfgErr error, getenv func(string) string) cli.
 		d.Calendar = graph.CalendarAPI{Memory: mem}
 		d.Files = graph.FilesAPI{Memory: mem}
 		d.Login = graph.FakeLoginAll(true, true, true, true)
+		d.DeviceLogin = d.Login
 		home, _ := os.UserHomeDir()
 		state := os.Getenv("XDG_STATE_HOME")
 		if state == "" {
@@ -72,6 +73,7 @@ func buildDeps(cfg config.Config, cfgErr error, getenv func(string) string) cli.
 		d.Calendar = &graph.HTTPCalendar{HTTPClient: httpc}
 		d.Files = &graph.HTTPFiles{HTTPClient: httpc}
 		d.Login = graph.RealLogin(cfg.ClientID, cfg.TenantID)
+		d.DeviceLogin = graph.RealDeviceLogin(cfg.ClientID, cfg.TenantID)
 		classification := cfg.Experimental.MailResponseClassification
 		if cfgErr == nil && classification.Enabled {
 			classifier, err := jev.NewClient(typesafeKey(getenv), classification.Model)

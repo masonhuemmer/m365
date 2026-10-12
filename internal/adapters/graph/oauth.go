@@ -26,9 +26,10 @@ func PKCEConfig(clientID, tenant, redirect string) *oauth2.Config {
 		ClientID:    clientID,
 		RedirectURL: redirect,
 		Endpoint: oauth2.Endpoint{
-			AuthURL:   "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0/authorize",
-			TokenURL:  "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0/token",
-			AuthStyle: oauth2.AuthStyleInParams,
+			AuthURL:       "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0/authorize",
+			TokenURL:      "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0/token",
+			AuthStyle:     oauth2.AuthStyleInParams,
+			DeviceAuthURL: "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0/devicecode",
 		},
 		Scopes: []string{"openid", "offline_access", "profile", "Mail.Read", "Mail.Send", "Chat.Read", "ChatMessage.Send", "Calendars.ReadWrite", "Files.ReadWrite"},
 	}
