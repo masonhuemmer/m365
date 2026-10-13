@@ -35,15 +35,15 @@ func (c *HTTPClient) doJSON(ctx context.Context, method, path string, payload an
 	return nil
 }
 
+func addressList(addresses []string) []map[string]any {
+	out := make([]map[string]any, 0, len(addresses))
+	for _, a := range addresses {
+		out = append(out, map[string]any{"emailAddress": map[string]string{"address": a}})
+	}
+	return out
+}
+
 func (c *HTTPClient) Send(ctx context.Context, in mail.SendInput) (string, error) {
-	to := make([]map[string]any, 0, len(in.To))
-	for _, a := range in.To {
-		to = append(to, map[string]any{"emailAddress": map[string]string{"address": a}})
-	}
-	cc := make([]map[string]any, 0, len(in.CC))
-	for _, a := range in.CC {
-		cc = append(cc, map[string]any{"emailAddress": map[string]string{"address": a}})
-	}
 	atts, err := fileAttachments(in.Files)
 	if err != nil {
 		return "", err
@@ -51,10 +51,13 @@ func (c *HTTPClient) Send(ctx context.Context, in mail.SendInput) (string, error
 	msg := map[string]any{
 		"subject":      in.Subject,
 		"body":         map[string]string{"contentType": "HTML", "content": in.Rendered.Content},
-		"toRecipients": to,
+		"toRecipients": addressList(in.To),
 	}
-	if len(cc) > 0 {
-		msg["ccRecipients"] = cc
+	if len(in.CC) > 0 {
+		msg["ccRecipients"] = addressList(in.CC)
+	}
+	if len(in.BCC) > 0 {
+		msg["bccRecipients"] = addressList(in.BCC)
 	}
 	if len(atts) > 0 {
 		msg["attachments"] = atts

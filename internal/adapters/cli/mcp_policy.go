@@ -64,7 +64,7 @@ func checkReplyAll(flags map[string]any) error {
 
 func checkMailSend(flags map[string]any) error {
 	for flag, value := range flags {
-		if flag == "to" || flag == "cc" {
+		if flag == "to" || flag == "cc" || flag == "bcc" {
 			if !allEmails(value) {
 				return domain.Usagef("--%s requires an exact email", flag)
 			}

@@ -105,13 +105,16 @@ func termWidth(w io.Writer) int {
 	return 80
 }
 
-func mailPreviewHeaders(out any, cc []string, files []domain.OutboundFile) []string {
+func mailPreviewHeaders(out any, cc, bcc []string, files []domain.OutboundFile) []string {
 	m, _ := out.(map[string]any)
 	to, _ := m["to"].([]string)
 	subject, _ := m["subject"].(string)
 	h := []string{"To: " + strings.Join(to, ", ")}
 	if len(cc) > 0 {
 		h = append(h, "Cc: "+strings.Join(cc, ", "))
+	}
+	if len(bcc) > 0 {
+		h = append(h, "Bcc: "+strings.Join(bcc, ", "))
 	}
 	h = append(h, "Subject: "+subject)
 	return appendAttachments(h, files)

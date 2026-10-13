@@ -61,7 +61,7 @@ The cursor is committed only after the complete delta round is emitted.
 const mailSendHelp = `m365 mail send — send mail
 
 Required: --to --subject --body or --body-file
-Optional: --cc --attach (repeatable) --html --format md --dry-run --preview --note-to-self
+Optional: --cc --bcc --attach (repeatable) --html --format md --dry-run --preview --note-to-self
 Plain text keeps paragraphs and line breaks (sent as HTML).
 --format md converts a markdown subset to HTML: # / ## / ### headings, **bold**, - / * / 1. lists, [label](url), inline code in backticks, fenced code.
 --html sends the body as HTML unchanged. Not both.

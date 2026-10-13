@@ -18,14 +18,14 @@ type ListQuery struct {
 }
 
 type SendInput struct {
-	To, CC     []string
-	Subject    string
-	Body       string
-	HTML       bool
-	MD         bool
-	DryRun     bool
-	NoteToSelf bool
-	Files      []domain.OutboundFile
+	To, CC, BCC []string
+	Subject     string
+	Body        string
+	HTML        bool
+	MD          bool
+	DryRun      bool
+	NoteToSelf  bool
+	Files       []domain.OutboundFile
 	// Rendered is the delivered body, set by Send. Stores send it as-is.
 	Rendered msgbody.Rendered
 }
@@ -115,7 +115,7 @@ func Send(ctx context.Context, st Store, sess domain.Session, in SendInput) (any
 	}
 	problems := append(msgbody.LintSubject(in.Subject), msgbody.Lint(in.Rendered.Content)...)
 	if in.DryRun {
-		return dryPayload(in.To, in.Subject, in.Body, in.Files, in.Rendered, problems), nil
+		return sendDryPayload(in, problems), nil
 	}
 	if err := problems.Err(); err != nil {
 		return nil, err
@@ -200,4 +200,12 @@ func dryPayload(to []string, subject, body string, files []domain.OutboundFile, 
 		"rendered":        r,
 		"format_problems": problems,
 	}
+}
+
+func sendDryPayload(in SendInput, problems msgbody.Problems) map[string]any {
+	payload := dryPayload(in.To, in.Subject, in.Body, in.Files, in.Rendered, problems)
+	if len(in.BCC) > 0 {
+		payload["bcc"] = in.BCC
+	}
+	return payload
 }
