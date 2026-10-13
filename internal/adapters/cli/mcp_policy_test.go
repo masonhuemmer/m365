@@ -110,7 +110,7 @@ func TestMCPExactRecipientsRejectsInvalidMailCC(t *testing.T) {
 
 func TestMCPExactRecipientsRejectsUnknownRecipientFlag(t *testing.T) {
 	p := MCPPolicy{ExactRecipients: true}
-	for _, flag := range []string{"bcc", "reply-to"} {
+	for _, flag := range []string{"bcc-list", "reply-to"} {
 		in := runIn{Namespace: "mail", Verb: "send", Flags: map[string]any{"to": "approved@example.com", flag: "other@example.com"}}
 		if err := p.check(&in); err == nil || domain.ClassOf(err) != domain.ClassUsage {
 			t.Fatalf("recipient flag %q bypassed policy: %v", flag, err)

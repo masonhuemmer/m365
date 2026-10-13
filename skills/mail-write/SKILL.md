@@ -25,4 +25,6 @@ Attach local files with --attach PATH, repeatable, on mail send and mail reply (
 
 MCP: flags attach=[/path/report.pdf]. Paths are local to the machine running m365.
 
+Copy recipients with --cc (mail send) and --bcc (mail send and mail reply), both repeatable. A send needs --to and/or --bcc. Bcc recipients are hidden from everyone else, so confirm the "to", "cc" and "bcc" lists in the dry-run before the real send. With --exact-recipients every --to, --cc and --bcc must be an email address.
+
 Happy-path examples stay dry-run (write_opt_in false). MCP writes dry-run unless write_opt_in is true.

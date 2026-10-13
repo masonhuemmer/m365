@@ -87,7 +87,7 @@ func TestReplyRendersBeforeDryRun(t *testing.T) {
 func TestWhitespaceBodyIsMissing(t *testing.T) {
 	st := &replyRec{stub: &stub{}}
 	_, err := Send(context.Background(), st, sessMail(), SendInput{To: []string{"user@example.com"}, Subject: "t", Body: " \n\t "})
-	wantUsage(t, err, "to, subject, and body are required")
+	wantUsage(t, err, "a recipient (--to or --bcc), subject, and body are required")
 	_, err = Reply(context.Background(), st, sessMail(), ReplyInput{ID: "msg-1", Body: "   ", DryRun: true})
 	wantUsage(t, err, "message id and body are required")
 	if st.sent != 0 {

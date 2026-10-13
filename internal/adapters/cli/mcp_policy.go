@@ -46,7 +46,7 @@ func (p MCPPolicy) check(in *runIn) error {
 	}
 	switch {
 	case ns == "mail" && in.Verb == "reply":
-		return checkReplyAll(in.Flags)
+		return checkReply(in.Flags)
 	case in.Verb != "send":
 		return nil
 	case ns == "mail":
@@ -62,9 +62,19 @@ func checkReplyAll(flags map[string]any) error {
 	return nil
 }
 
+func checkReply(flags map[string]any) error {
+	if err := checkReplyAll(flags); err != nil {
+		return err
+	}
+	if bcc, exists := flags["bcc"]; exists && !allEmails(bcc) {
+		return domain.Usage("--bcc requires an exact email")
+	}
+	return nil
+}
+
 func checkMailSend(flags map[string]any) error {
 	for flag, value := range flags {
-		if flag == "to" || flag == "cc" {
+		if flag == "to" || flag == "cc" || flag == "bcc" {
 			if !allEmails(value) {
 				return domain.Usagef("--%s requires an exact email", flag)
 			}
