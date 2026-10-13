@@ -109,7 +109,10 @@ func mailPreviewHeaders(out any, cc, bcc []string, files []domain.OutboundFile) 
 	m, _ := out.(map[string]any)
 	to, _ := m["to"].([]string)
 	subject, _ := m["subject"].(string)
-	h := []string{"To: " + strings.Join(to, ", ")}
+	var h []string
+	if len(to) > 0 {
+		h = append(h, "To: "+strings.Join(to, ", "))
+	}
 	if len(cc) > 0 {
 		h = append(h, "Cc: "+strings.Join(cc, ", "))
 	}
@@ -120,12 +123,16 @@ func mailPreviewHeaders(out any, cc, bcc []string, files []domain.OutboundFile) 
 	return appendAttachments(h, files)
 }
 
-func replyPreviewHeaders(id string, all bool, files []domain.OutboundFile) []string {
+func replyPreviewHeaders(id string, all bool, bcc []string, files []domain.OutboundFile) []string {
 	h := "Reply to message " + id
 	if all {
 		h += " (reply all)"
 	}
-	return appendAttachments([]string{h}, files)
+	hs := []string{h}
+	if len(bcc) > 0 {
+		hs = append(hs, "Bcc: "+strings.Join(bcc, ", "))
+	}
+	return appendAttachments(hs, files)
 }
 
 func teamsPreviewHeaders(out any, files []domain.OutboundFile) []string {

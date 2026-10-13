@@ -61,7 +61,8 @@ func mailReply(args []string, d Deps, sess domain.Session, format string) int {
 	formatmd := fsset.String("format", "", "")
 	dry := fsset.Bool("dry-run", false, "")
 	preview := fsset.Bool("preview", false, "")
-	var attach []string
+	var attach, bcc []string
+	fsset.Func("bcc", "", func(s string) error { bcc = append(bcc, s); return nil })
 	fsset.Func("attach", "", func(s string) error { attach = append(attach, s); return nil })
 	if err := parseMixed(fsset, args); err != nil {
 		return fail(d, domain.Usage(err.Error()))
@@ -80,13 +81,13 @@ func mailReply(args []string, d Deps, sess domain.Session, format string) int {
 		return fail(d, err)
 	}
 	out, err := mail.Reply(ctx(), d.Mail, sess, mail.ReplyInput{
-		ID: id, Body: b, All: *all, HTML: *html, MD: md, DryRun: *dry || *preview, Files: files,
+		ID: id, BCC: bcc, Body: b, All: *all, HTML: *html, MD: md, DryRun: *dry || *preview, Files: files,
 	})
 	if err != nil {
 		return fail(d, err)
 	}
 	if *preview {
-		return writePreview(d, replyPreviewHeaders(id, *all, files), out)
+		return writePreview(d, replyPreviewHeaders(id, *all, bcc, files), out)
 	}
 	return success(d, format, out)
 }

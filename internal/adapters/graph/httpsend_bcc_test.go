@@ -41,3 +41,31 @@ func TestHTTPSendWithoutBccOmitsTheField(t *testing.T) {
 		t.Fatal("ccRecipients lost")
 	}
 }
+
+func replyPayload(t *testing.T, in mail.ReplyInput) map[string]any {
+	t.Helper()
+	srv, cap := captureJSONServer(t)
+	c := &HTTPClient{Base: srv.URL, Token: "t"}
+	in.Rendered = msgbody.Rendered{Content: "<p>ok</p>"}
+	if _, err := c.Reply(context.Background(), in); err != nil {
+		t.Fatal(err)
+	}
+	return cap.Body
+}
+
+func TestHTTPReplyPostsBccInMessage(t *testing.T) {
+	body := replyPayload(t, mail.ReplyInput{ID: "m1", BCC: []string{"hidden@example.com"}})
+	msg, _ := body["message"].(map[string]any)
+	if bcc, _ := msg["bccRecipients"].([]any); len(bcc) != 1 {
+		t.Fatalf("%v", body)
+	}
+	if body["comment"] != "<p>ok</p>" {
+		t.Fatal("comment lost")
+	}
+}
+
+func TestHTTPReplyWithoutBccOrFilesOmitsMessage(t *testing.T) {
+	if _, ok := replyPayload(t, mail.ReplyInput{ID: "m1"})["message"]; ok {
+		t.Fatal("empty message object sent")
+	}
+}

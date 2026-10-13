@@ -44,3 +44,46 @@ func TestMCPExactRecipientsChecksBcc(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestMailReplyBccFlagReachesStore(t *testing.T) {
+	d, out, errw := testDeps()
+	mem := graph.Seed()
+	d.Mail = graph.MailAPI{Memory: mem}
+	d.Login = graph.FakeLoginAll(true, true, true, true)
+	if code := Run([]string{"m365", "auth", "login"}, d); code != 0 {
+		t.Fatal(errw.String())
+	}
+	args := []string{"m365", "mail", "reply", "msg-1", "--bcc", "x@example.com", "--body", "ok"}
+	if code := Run(append(args, "--preview"), d); code != 0 || !strings.Contains(out.String(), "Bcc: x@example.com") {
+		t.Fatal(code, out.String(), errw.String())
+	}
+	if code := Run(args, d); code != 0 {
+		t.Fatal(errw.String())
+	}
+	sent, ok := mem.Sent[len(mem.Sent)-1].(mail.ReplyInput)
+	if !ok || len(sent.BCC) != 1 {
+		t.Fatalf("%+v", mem.Sent)
+	}
+}
+
+func TestMailSendBccOnlyPreviewHasNoToLine(t *testing.T) {
+	d, out, errw := testDeps()
+	d.Mail = graph.MailAPI{Memory: graph.Seed()}
+	d.Login = graph.FakeLoginAll(true, true, true, true)
+	_ = Run([]string{"m365", "auth", "login"}, d)
+	if code := Run([]string{"m365", "mail", "send", "--bcc", "x@example.com", "--subject", "s", "--body", "b", "--preview"}, d); code != 0 || strings.Contains(out.String(), "To:") {
+		t.Fatal(code, out.String(), errw.String())
+	}
+}
+
+func TestMCPExactRecipientsChecksReplyBcc(t *testing.T) {
+	p := MCPPolicy{ExactRecipients: true}
+	bad := runIn{Namespace: "mail", Verb: "reply", Flags: map[string]any{"bcc": "Some Name"}}
+	if err := p.check(&bad); err == nil {
+		t.Fatal("name-based reply bcc passed")
+	}
+	ok := runIn{Namespace: "mail", Verb: "reply", Flags: map[string]any{"bcc": "b@example.com"}}
+	if err := p.check(&ok); err != nil {
+		t.Fatal(err)
+	}
+}

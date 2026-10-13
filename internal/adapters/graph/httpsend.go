@@ -80,8 +80,15 @@ func (c *HTTPClient) Reply(ctx context.Context, in mail.ReplyInput) (string, err
 	// Graph renders comment as HTML above the quoted thread. message.body
 	// would replace the whole reply and drop the thread.
 	payload := map[string]any{"comment": in.Rendered.Content}
+	msg := map[string]any{}
 	if len(atts) > 0 {
-		payload["message"] = map[string]any{"attachments": atts}
+		msg["attachments"] = atts
+	}
+	if len(in.BCC) > 0 {
+		msg["bccRecipients"] = addressList(in.BCC)
+	}
+	if len(msg) > 0 {
+		payload["message"] = msg
 	}
 	if err := c.doJSON(ctx, http.MethodPost, path, payload); err != nil {
 		return "", err

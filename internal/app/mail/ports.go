@@ -32,6 +32,7 @@ type SendInput struct {
 
 type ReplyInput struct {
 	ID     string
+	BCC    []string
 	Body   string
 	All    bool
 	HTML   bool
@@ -103,19 +104,19 @@ func Send(ctx context.Context, st Store, sess domain.Session, in SendInput) (any
 			in.Subject = "Note to self"
 		}
 	}
-	if len(in.To) == 0 || in.Subject == "" || in.Body == "" {
-		return nil, domain.Usage("to, subject, and body are required")
+	if len(in.To)+len(in.BCC) == 0 || in.Subject == "" || in.Body == "" {
+		return nil, domain.Usage("a recipient (--to or --bcc), subject, and body are required")
 	}
 	if err := domain.ValidateOutbound(in.Files); err != nil {
 		return nil, err
 	}
 	in.Rendered = msgbody.Render(msgbody.ModeFor(in.HTML, in.MD), msgbody.Mail, in.Body)
 	if strings.TrimSpace(in.Rendered.Content) == "" {
-		return nil, domain.Usage("to, subject, and body are required")
+		return nil, domain.Usage("a recipient (--to or --bcc), subject, and body are required")
 	}
 	problems := append(msgbody.LintSubject(in.Subject), msgbody.Lint(in.Rendered.Content)...)
 	if in.DryRun {
-		return sendDryPayload(in, problems), nil
+		return dryPayload(in.To, in.CC, in.BCC, in.Subject, in.Body, in.Files, in.Rendered, problems), nil
 	}
 	if err := problems.Err(); err != nil {
 		return nil, err
@@ -143,7 +144,7 @@ func Reply(ctx context.Context, st Store, sess domain.Session, in ReplyInput) (a
 	}
 	problems := msgbody.Lint(in.Rendered.Content)
 	if in.DryRun {
-		return dryPayload(nil, "", in.Body, in.Files, in.Rendered, problems), nil
+		return dryPayload(nil, nil, in.BCC, "", in.Body, in.Files, in.Rendered, problems), nil
 	}
 	if err := problems.Err(); err != nil {
 		return nil, err
@@ -186,14 +187,16 @@ func Save(ctx context.Context, st Store, sess domain.Session, messageID, attach,
 	return dest, nil
 }
 
-func dryPayload(to []string, subject, body string, files []domain.OutboundFile, r msgbody.Rendered, problems msgbody.Problems) map[string]any {
+func dryPayload(to, cc, bcc []string, subject, body string, files []domain.OutboundFile, r msgbody.Rendered, problems msgbody.Problems) map[string]any {
 	atts := make([]map[string]any, 0, len(files))
 	for _, f := range files {
 		atts = append(atts, map[string]any{"name": f.Name, "size": f.Size})
 	}
 	return map[string]any{
 		"dry_run":         true,
-		"to":              to,
+		"to":              orEmpty(to),
+		"cc":              orEmpty(cc),
+		"bcc":             orEmpty(bcc),
 		"subject":         subject,
 		"body":            body,
 		"attachments":     atts,
@@ -202,10 +205,10 @@ func dryPayload(to []string, subject, body string, files []domain.OutboundFile, 
 	}
 }
 
-func sendDryPayload(in SendInput, problems msgbody.Problems) map[string]any {
-	payload := dryPayload(in.To, in.Subject, in.Body, in.Files, in.Rendered, problems)
-	if len(in.BCC) > 0 {
-		payload["bcc"] = in.BCC
+// orEmpty keeps unset recipient lists as [] in dry-run JSON, never null.
+func orEmpty(list []string) []string {
+	if list == nil {
+		return []string{}
 	}
-	return payload
+	return list
 }
