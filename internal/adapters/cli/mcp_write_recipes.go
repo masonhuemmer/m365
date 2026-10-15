@@ -59,6 +59,11 @@ Teams: --attach PATH (repeatable) uploads each file to your OneDrive (Microsoft 
 
 MCP: flags attach=[/path/report.pdf]; requires write_opt_in for the real send.
 Do not post one run-on --text string with markdown left unconverted. Adaptive Cards and Graph beta markdown are out of scope.
+Group chats: teams create --name NAME --member EMAIL_OR_ID (repeat, at least 2) starts a named group chat and teams rename CHAT_ID --name NAME renames one (group chats only). Members are exact emails or user IDs, never display names, and you are added automatically. Dry-run shows the name and members (rename shows old_name): check it, because create makes a new chat on every real run. Neither sends a message; post with teams send and the returned id. MCP: write_opt_in is required, --allow takes teams.create and teams.rename, and the user must have signed in with Chat.ReadWrite.
+
+  teams create --name 'NOC Weekly' --member ajay@example.com --member jarrett@example.com --dry-run
+  teams rename CHAT_ID --name 'NOC Daily' --dry-run
+
 Happy-path examples stay dry-run (write_opt_in false).
 `
 )

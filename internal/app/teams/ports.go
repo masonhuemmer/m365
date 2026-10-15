@@ -55,6 +55,9 @@ type Store interface {
 	Watch(ctx context.Context, q WatchQuery) ([]domain.WatchEvent, error)
 	Attachments(ctx context.Context, chatID, messageID string) ([]domain.Attachment, error)
 	Download(ctx context.Context, chatID, messageID, attach string) ([]byte, domain.Attachment, error)
+	// CreateChat starts a group chat; members are emails or user IDs, not including the signed-in user.
+	CreateChat(ctx context.Context, topic string, members []string) (domain.Chat, error)
+	RenameChat(ctx context.Context, chatID, topic string) error
 }
 
 func List(ctx context.Context, st Store, sess domain.Session, top int, page string) (domain.ChatPage, error) {

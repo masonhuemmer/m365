@@ -31,7 +31,7 @@ func PKCEConfig(clientID, tenant, redirect string) *oauth2.Config {
 			AuthStyle:     oauth2.AuthStyleInParams,
 			DeviceAuthURL: "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0/devicecode",
 		},
-		Scopes: []string{"openid", "offline_access", "profile", "Mail.Read", "Mail.Send", "Chat.Read", "ChatMessage.Send", "Calendars.ReadWrite", "Files.ReadWrite"},
+		Scopes: []string{"openid", "offline_access", "profile", "Mail.Read", "Mail.Send", "Chat.Read", "Chat.ReadWrite", "ChatMessage.Send", "Calendars.ReadWrite", "Files.ReadWrite"},
 	}
 }
 
