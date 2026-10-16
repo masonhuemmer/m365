@@ -42,18 +42,42 @@ func teamsRename(args []string, d Deps, sess domain.Session, format string) int 
 	return success(d, format, out)
 }
 
-// teamsChatAdmin runs the verbs that create or rename chats; ok is false for any other verb.
+func teamsHide(hidden bool) func([]string, Deps, domain.Session, string) int {
+	return func(args []string, d Deps, sess domain.Session, format string) int {
+		fsset := flag.NewFlagSet("teams hide", flag.ContinueOnError)
+		fsset.SetOutput(d.Stderr)
+		dry := fsset.Bool("dry-run", false, "")
+		if err := parseMixed(fsset, args); err != nil {
+			return fail(d, domain.Usage(err.Error()))
+		}
+		out, err := teams.SetHidden(ctx(), d.Teams, sess, fsset.Arg(0), hidden, *dry)
+		if err != nil {
+			return fail(d, err)
+		}
+		return success(d, format, out)
+	}
+}
+
+type chatAdminVerb struct {
+	run  func([]string, Deps, domain.Session, string) int
+	help string
+}
+
+var chatAdminVerbs = map[string]chatAdminVerb{
+	"create": {teamsCreate, teamsCreateHelp},
+	"rename": {teamsRename, teamsRenameHelp},
+	"hide":   {teamsHide(true), teamsHideHelp},
+	"unhide": {teamsHide(false), teamsUnhideHelp},
+}
+
+// teamsChatAdmin runs the verbs that create, rename or hide chats; ok is false for any other verb.
 func teamsChatAdmin(verb string, args []string, d Deps, sess domain.Session, format string) (code int, ok bool) {
-	run, help := teamsCreate, teamsCreateHelp
-	switch verb {
-	case "create":
-	case "rename":
-		run, help = teamsRename, teamsRenameHelp
-	default:
+	v, found := chatAdminVerbs[verb]
+	if !found {
 		return 0, false
 	}
 	if hasHelp(args) {
-		return writeHelp(d.Stdout, help), true
+		return writeHelp(d.Stdout, v.help), true
 	}
-	return run(args, d, sess, format), true
+	return v.run(args, d, sess, format), true
 }

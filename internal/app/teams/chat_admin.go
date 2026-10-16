@@ -74,6 +74,35 @@ func Rename(ctx context.Context, st Store, sess domain.Session, chatID, name str
 	return map[string]any{"renamed": true, "chat_id": chatID, "old_name": chat.Topic, "name": name}, nil
 }
 
+// SetHidden hides or unhides a chat in the signed-in user's own list. Nothing is deleted
+// and other members still see the chat; a new message in it unhides it again.
+func SetHidden(ctx context.Context, st Store, sess domain.Session, chatID string, hidden, dryRun bool) (any, error) {
+	if err := auth.Require(sess, false, true); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(chatID) == "" {
+		return nil, domain.Usage("chat id is required")
+	}
+	chat, err := st.GetChat(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+	action, done := "hide", "hidden"
+	if !hidden {
+		action, done = "unhide", "unhidden"
+	}
+	out := map[string]any{"chat_id": chatID, "name": chat.Topic, "chat_type": chat.Type, "action": action}
+	if dryRun {
+		out["dry_run"] = true
+		return out, nil
+	}
+	if err := st.HideChat(ctx, chatID, hidden); err != nil {
+		return nil, err
+	}
+	out[done] = true
+	return out, nil
+}
+
 func validTopic(name string) (string, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {

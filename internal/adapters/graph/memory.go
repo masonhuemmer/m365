@@ -28,6 +28,7 @@ type Memory struct {
 	Items     []domain.DriveItem
 	FileBytes map[string][]byte
 
+	Hidden         map[string]bool
 	MailRevisions  map[string]string
 	MailDeltaToken string
 }
@@ -358,6 +359,16 @@ func (m *Memory) RenameChat(_ context.Context, id, topic string) error {
 	return domain.NotFound("chat not found")
 }
 
+func (m *Memory) HideChat(_ context.Context, id string, hidden bool) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Hidden == nil {
+		m.Hidden = map[string]bool{}
+	}
+	m.Hidden[id] = hidden
+	return nil
+}
+
 func (m *Memory) Watch(_ context.Context, q teams.WatchQuery) ([]domain.WatchEvent, error) {
 	if err := m.fail(); err != nil {
 		return nil, err
@@ -435,6 +446,10 @@ func (t TeamsAPI) CreateChat(ctx context.Context, topic string, members []string
 
 func (t TeamsAPI) RenameChat(ctx context.Context, id, topic string) error {
 	return t.Memory.RenameChat(ctx, id, topic)
+}
+
+func (t TeamsAPI) HideChat(ctx context.Context, id string, hidden bool) error {
+	return t.Memory.HideChat(ctx, id, hidden)
 }
 
 func (t TeamsAPI) Attachments(ctx context.Context, chatID, messageID string) ([]domain.Attachment, error) {

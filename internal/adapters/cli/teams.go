@@ -12,7 +12,7 @@ import (
 
 func runTeams(args []string, d Deps, format string) int {
 	if len(args) == 0 || args[0] == "help" || args[0] == "--help" || args[0] == "-h" {
-		return writeHelp(d.Stdout, teamsListHelp+teamsMessagesHelp+teamsFindHelp+teamsSendHelp+teamsCreateHelp+teamsRenameHelp)
+		return writeHelp(d.Stdout, teamsListHelp+teamsMessagesHelp+teamsFindHelp+teamsSendHelp+teamsCreateHelp+teamsRenameHelp+teamsHideHelp+teamsUnhideHelp)
 	}
 	verb, args := args[0], args[1:]
 	sess, err := session(d)

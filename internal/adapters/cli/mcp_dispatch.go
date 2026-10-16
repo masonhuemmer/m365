@@ -99,7 +99,7 @@ func applyWriteGate(ns, verb string, flags map[string]any, optIn bool) map[strin
 
 func isWrite(ns, verb string) bool {
 	switch ns + " " + verb {
-	case "mail send", "mail reply", "teams send", "teams create", "teams rename",
+	case "mail send", "mail reply", "teams send", "teams create", "teams rename", "teams hide", "teams unhide",
 		"calendar create", "calendar update", "calendar delete",
 		"files upload", "files create-folder", "files delete", "files move":
 		return true

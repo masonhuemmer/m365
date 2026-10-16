@@ -2,6 +2,7 @@ package graph
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -11,19 +12,11 @@ import (
 )
 
 func (c *HTTPTeams) CreateChat(ctx context.Context, topic string, members []string) (domain.Chat, error) {
-	res, err := c.do(ctx, http.MethodGet, "/me?$select=id")
+	self, err := c.selfID(ctx)
 	if err != nil {
 		return domain.Chat{}, err
 	}
-	var me struct {
-		ID string `json:"id"`
-	}
-	err = json.NewDecoder(res.Body).Decode(&me)
-	_ = res.Body.Close()
-	if err != nil || me.ID == "" {
-		return domain.Chat{}, domain.Service("could not read the signed-in user id")
-	}
-	ids := append([]string{me.ID}, members...)
+	ids := append([]string{self}, members...)
 	bound := make([]map[string]any, 0, len(ids))
 	for _, id := range ids {
 		bound = append(bound, map[string]any{
@@ -36,7 +29,7 @@ func (c *HTTPTeams) CreateChat(ctx context.Context, topic string, members []stri
 	if err != nil {
 		return domain.Chat{}, domain.Usage(err.Error())
 	}
-	res, err = c.doBody(ctx, http.MethodPost, "/chats", body)
+	res, err := c.doBody(ctx, http.MethodPost, "/chats", body)
 	if err != nil {
 		return domain.Chat{}, err
 	}
@@ -46,6 +39,56 @@ func (c *HTTPTeams) CreateChat(ctx context.Context, topic string, members []stri
 		return domain.Chat{}, domain.Service("invalid create chat response")
 	}
 	return mapGraphChat(g), nil
+}
+
+func (c *HTTPTeams) selfID(ctx context.Context) (string, error) {
+	res, err := c.do(ctx, http.MethodGet, "/me?$select=id")
+	if err != nil {
+		return "", err
+	}
+	var me struct {
+		ID string `json:"id"`
+	}
+	err = json.NewDecoder(res.Body).Decode(&me)
+	_ = res.Body.Close()
+	if err != nil || me.ID == "" {
+		return "", domain.Service("could not read the signed-in user id")
+	}
+	return me.ID, nil
+}
+
+// tenantID reads the tid claim of the access token, so no extra permission is needed.
+func (c *HTTPTeams) tenantID() (string, error) {
+	parts := strings.Split(c.bearer(false), ".")
+	if len(parts) == 3 {
+		if raw, err := base64.RawURLEncoding.DecodeString(parts[1]); err == nil {
+			var claims struct {
+				TID string `json:"tid"`
+			}
+			if json.Unmarshal(raw, &claims) == nil && claims.TID != "" {
+				return claims.TID, nil
+			}
+		}
+	}
+	return "", domain.Service("could not read the tenant id from the access token")
+}
+
+// HideChat calls hideForUser or unhideForUser for the signed-in user.
+func (c *HTTPTeams) HideChat(ctx context.Context, chatID string, hidden bool) error {
+	self, err := c.selfID(ctx)
+	if err != nil {
+		return err
+	}
+	tenant, err := c.tenantID()
+	if err != nil {
+		return err
+	}
+	action := "unhideForUser"
+	if hidden {
+		action = "hideForUser"
+	}
+	body := map[string]any{"user": map[string]string{"id": self, "tenantId": tenant}}
+	return c.doJSON(ctx, http.MethodPost, "/chats/"+url.PathEscape(chatID)+"/"+action, body)
 }
 
 func (c *HTTPTeams) RenameChat(ctx context.Context, chatID, topic string) error {

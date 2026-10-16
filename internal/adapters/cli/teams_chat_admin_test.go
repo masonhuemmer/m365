@@ -45,6 +45,18 @@ func TestTeamsCreateAndRenameThroughCLI(t *testing.T) {
 	if code, _ := run("rename", "chat-1", "--name", "x"); code == 0 {
 		t.Fatal("1:1 chat renamed")
 	}
+	if code, out := run("hide", id, "--dry-run"); code != 0 || out["dry_run"] != true || mem.Hidden[id] {
+		t.Fatal(code, out)
+	}
+	if code, out := run("hide", id); code != 0 || out["hidden"] != true || !mem.Hidden[id] {
+		t.Fatal(code, out)
+	}
+	if code, out := run("unhide", id); code != 0 || out["unhidden"] != true || mem.Hidden[id] {
+		t.Fatal(code, out)
+	}
+	if code, _ := run("hide"); code == 0 {
+		t.Fatal("hide without a chat id")
+	}
 	if code, _ := run("create", "--name", "x", "--member", "a@example.com"); code == 0 {
 		t.Fatal("one-member group created")
 	}
@@ -54,7 +66,7 @@ func TestTeamsCreateAndRenameThroughCLI(t *testing.T) {
 }
 
 func TestMCPTreatsChatCreateAndRenameAsWrites(t *testing.T) {
-	for _, verb := range []string{"create", "rename"} {
+	for _, verb := range []string{"create", "rename", "hide", "unhide"} {
 		if !isWrite("teams", verb) {
 			t.Fatalf("teams %s is not a guarded write", verb)
 		}

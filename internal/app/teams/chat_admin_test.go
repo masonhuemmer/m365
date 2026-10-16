@@ -12,17 +12,20 @@ func (s *stub) CreateChat(_ context.Context, topic string, _ []string) (domain.C
 	return domain.Chat{ID: "chat-new", Topic: topic, Type: "group"}, s.err
 }
 func (s *stub) RenameChat(context.Context, string, string) error { return s.err }
+func (s *stub) HideChat(context.Context, string, bool) error     { return s.err }
 
 func (m *chatMem) CreateChat(_ context.Context, topic string, _ []string) (domain.Chat, error) {
 	return domain.Chat{ID: "chat-new", Topic: topic, Type: "group"}, nil
 }
 func (m *chatMem) RenameChat(context.Context, string, string) error { return nil }
+func (m *chatMem) HideChat(context.Context, string, bool) error     { return nil }
 
 // adminMem records the calls that change chats.
 type adminMem struct {
 	chatMem
 	created []string
 	renamed []string
+	hidden  []string
 }
 
 func (m *adminMem) CreateChat(_ context.Context, topic string, members []string) (domain.Chat, error) {
@@ -31,6 +34,11 @@ func (m *adminMem) CreateChat(_ context.Context, topic string, members []string)
 }
 func (m *adminMem) RenameChat(_ context.Context, id, topic string) error {
 	m.renamed = append(m.renamed, id+"|"+topic)
+	return nil
+}
+
+func (m *adminMem) HideChat(_ context.Context, id string, hidden bool) error {
+	m.hidden = append(m.hidden, id+"|"+map[bool]string{true: "hide", false: "unhide"}[hidden])
 	return nil
 }
 
@@ -105,5 +113,38 @@ func TestRenameOnlyGroupChats(t *testing.T) {
 	}
 	if len(st.renamed) != 1 {
 		t.Fatalf("extra renames: %v", st.renamed)
+	}
+}
+
+func TestSetHiddenDryRunThenApply(t *testing.T) {
+	st := &adminMem{chatMem: chatMem{chats: []domain.Chat{{ID: "g1", Type: "group", Topic: "Test"}, {ID: "o1", Type: "oneOnOne"}}}}
+	out, err := SetHidden(context.Background(), st, adminSess(), "g1", true, true)
+	if err != nil || out.(map[string]any)["dry_run"] != true || out.(map[string]any)["name"] != "Test" || len(st.hidden) != 0 {
+		t.Fatal(err, out, st.hidden)
+	}
+	if out, err = SetHidden(context.Background(), st, adminSess(), "g1", true, false); err != nil || out.(map[string]any)["hidden"] != true {
+		t.Fatal(err, out)
+	}
+	if out, err = SetHidden(context.Background(), st, adminSess(), "o1", false, false); err != nil || out.(map[string]any)["unhidden"] != true {
+		t.Fatal(err, out)
+	}
+	if len(st.hidden) != 2 || st.hidden[0] != "g1|hide" || st.hidden[1] != "o1|unhide" {
+		t.Fatal(st.hidden)
+	}
+}
+
+func TestSetHiddenRejectsBadInput(t *testing.T) {
+	st := &adminMem{}
+	if _, err := SetHidden(context.Background(), st, adminSess(), " ", true, false); domain.ExitOf(err) != domain.ExitUsage {
+		t.Fatal(err)
+	}
+	if _, err := SetHidden(context.Background(), st, adminSess(), "missing", true, false); domain.ExitOf(err) != domain.ExitNotFound {
+		t.Fatal(err)
+	}
+	if _, err := SetHidden(context.Background(), st, domain.SignedOut(), "g1", true, false); domain.ExitOf(err) != domain.ExitAuth {
+		t.Fatal(err)
+	}
+	if len(st.hidden) != 0 {
+		t.Fatal("hid a chat on a rejected request")
 	}
 }
