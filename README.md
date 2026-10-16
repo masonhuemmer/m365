@@ -162,6 +162,16 @@ m365 teams send --note-to-self --text 'Scratch note.' --dry-run
 
 For a list or a link, use `--format md` (a small markdown subset becomes HTML) or `--html` with HTML already written.
 
+Start or rename a group chat. Members are exact emails or user IDs (at least two besides you); you are added as an owner. `create` makes a new chat every time and sends no message, so follow it with `teams send` using the returned id. Only group chats can be renamed. Both need the `Chat.ReadWrite` permission, so run `m365 auth login` again if you signed in before v0.8.0.
+
+```sh
+m365 teams create --name 'NOC Weekly' --member ajay@example.com --member jarrett@example.com --dry-run
+m365 teams rename CHAT_ID --name 'NOC Daily' --dry-run
+m365 teams hide CHAT_ID --dry-run
+```
+
+`teams hide CHAT_ID` removes a chat from your own list (`teams unhide` brings it back). Nothing is deleted and other members still see the chat; a new message in it shows it again. Graph only lets tenant admins delete chats, so this is the cleanup available to you.
+
 After a unique `teams find` or a listed 1:1, later `--to Ajay` remembers the chat id so it does not scan the whole list again.
 
 ### Calendar and files

@@ -12,12 +12,15 @@ import (
 
 func runTeams(args []string, d Deps, format string) int {
 	if len(args) == 0 || args[0] == "help" || args[0] == "--help" || args[0] == "-h" {
-		return writeHelp(d.Stdout, teamsListHelp+teamsMessagesHelp+teamsFindHelp+teamsSendHelp)
+		return writeHelp(d.Stdout, teamsListHelp+teamsMessagesHelp+teamsFindHelp+teamsSendHelp+teamsCreateHelp+teamsRenameHelp+teamsHideHelp+teamsUnhideHelp)
 	}
 	verb, args := args[0], args[1:]
 	sess, err := session(d)
 	if err != nil {
 		return fail(d, err)
+	}
+	if code, ok := teamsChatAdmin(verb, args, d, sess, format); ok {
+		return code
 	}
 	switch verb {
 	case "list":
@@ -37,14 +40,7 @@ func runTeams(args []string, d Deps, format string) int {
 		}
 		return success(d, format, p)
 	case "get":
-		if len(args) < 1 {
-			return fail(d, domain.Usage("chat id is required"))
-		}
-		c, err := teams.Get(ctx(), d.Teams, sess, args[0])
-		if err != nil {
-			return fail(d, err)
-		}
-		return success(d, format, c)
+		return teamsGet(args, d, sess, format)
 	case "messages":
 		if hasHelp(args) {
 			return writeHelp(d.Stdout, teamsMessagesHelp)
@@ -91,6 +87,17 @@ func runTeams(args []string, d Deps, format string) int {
 	default:
 		return fail(d, domain.Usagef("unknown teams verb %q", verb))
 	}
+}
+
+func teamsGet(args []string, d Deps, sess domain.Session, format string) int {
+	if len(args) < 1 {
+		return fail(d, domain.Usage("chat id is required"))
+	}
+	c, err := teams.Get(ctx(), d.Teams, sess, args[0])
+	if err != nil {
+		return fail(d, err)
+	}
+	return success(d, format, c)
 }
 
 func teamsSend(args []string, d Deps, sess domain.Session, format string) int {

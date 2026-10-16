@@ -113,6 +113,40 @@ Empty list exit 0. Never sends.
 Output: JSON (default) or --human.
 `
 
+const teamsCreateHelp = `m365 teams create — start a named group chat
+
+Required: --name "Chat name" and --member (repeatable, at least 2)
+Example: teams create --name "NOC Weekly" --member ajay@example.com --member jarrett@example.com --dry-run
+--member is an exact email or user ID, never a display name. You are added as an owner automatically; do not list yourself.
+Name: one line, up to 250 characters. Each run makes a new chat: Teams does not reuse a group with the same members.
+No message is sent; use teams send with the returned chat id. --dry-run shows name and members and creates nothing.
+Needs the Chat.ReadWrite permission: run m365 auth login again if you signed in before it was added.
+`
+
+const teamsRenameHelp = `m365 teams rename — rename a group chat
+
+Required: CHAT_ID and --name "New name"
+Example: teams rename 19:abc@thread.v2 --name "NOC Weekly" --dry-run
+Only group chats can be renamed; 1:1 and meeting chats exit 3. --dry-run shows old_name and name and changes nothing.
+Needs the Chat.ReadWrite permission: run m365 auth login again if you signed in before it was added.
+`
+
+const teamsHideHelp = `m365 teams hide — hide a chat from your own list
+
+Required: CHAT_ID
+Example: teams hide 19:abc@thread.v2 --dry-run
+Hides the chat for you only. Nothing is deleted and other members still see it; Graph does not let a non-admin delete a chat. A new message in the chat, from anyone, shows it again. Undo with teams unhide.
+--dry-run shows the chat name and type and changes nothing.
+Needs the Chat.ReadWrite permission: run m365 auth login again if you signed in before it was added.
+`
+
+const teamsUnhideHelp = `m365 teams unhide — show a hidden chat in your list again
+
+Required: CHAT_ID
+Example: teams unhide 19:abc@thread.v2 --dry-run
+Undoes teams hide for you only. --dry-run changes nothing.
+`
+
 const teamsSendHelp = `m365 teams send — send a chat message
 
 Required: CHAT_ID or --to Ajay, plus --text or --text-file
