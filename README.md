@@ -170,7 +170,7 @@ m365 teams rename CHAT_ID --name 'NOC Daily' --dry-run
 m365 teams hide CHAT_ID --dry-run
 ```
 
-`teams hide CHAT_ID` removes a chat from your own list (`teams unhide` brings it back). Nothing is deleted and other members still see the chat; a new message in it shows it again. Graph only lets tenant admins delete chats, so this is the cleanup available to you.
+`teams hide CHAT_ID` removes a chat from your own list (`teams unhide` brings it back). Nothing is deleted and other members still see the chat; a new message in it shows it again. Graph only lets tenant admins delete chats, so this is the cleanup available to you. `teams list` skips hidden chats; add `--include-hidden` to list them too (marked `"hidden": true`) when you need the id for `teams unhide`.
 
 After a unique `teams find` or a listed 1:1, later `--to Ajay` remembers the chat id so it does not scan the whole list again.
 

@@ -19,6 +19,9 @@ type stub struct {
 func (s *stub) ListChats(context.Context, int, string) (domain.ChatPage, error) {
 	return s.chats, s.err
 }
+func (s *stub) ListVisibleChats(ctx context.Context, top int, page string) (domain.ChatPage, error) {
+	return s.ListChats(ctx, top, page)
+}
 func (s *stub) GetChat(context.Context, string) (domain.Chat, error) { return s.chat, s.err }
 func (s *stub) Messages(context.Context, MessageQuery) (domain.ChatMessagePage, error) {
 	return s.msgs, s.err
