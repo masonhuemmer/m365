@@ -79,7 +79,7 @@ func NewFakeServer(mem *Memory) *httptest.Server {
 			if s := r.URL.Query().Get("$skiptoken"); strings.HasPrefix(s, "s.") {
 				skip, _ = strconv.Atoi(strings.TrimPrefix(s, "s."))
 			}
-			chats := mem.Chats
+			chats := mem.chatsWithHidden(strings.Contains(r.URL.Query().Get("$filter"), "viewpoint/isHidden eq false"))
 			if skip > len(chats) {
 				skip = len(chats)
 			}
@@ -93,7 +93,10 @@ func NewFakeServer(mem *Memory) *httptest.Server {
 				for _, p := range c.Members {
 					mems = append(mems, map[string]any{"displayName": p.Name, "email": p.Address})
 				}
-				vals = append(vals, map[string]any{"id": c.ID, "topic": c.Topic, "chatType": c.Type, "members": mems})
+				vals = append(vals, map[string]any{
+					"id": c.ID, "topic": c.Topic, "chatType": c.Type, "members": mems,
+					"viewpoint": map[string]any{"isHidden": c.Hidden},
+				})
 			}
 			out := map[string]any{"value": vals}
 			if end < len(chats) {

@@ -84,3 +84,37 @@ func TestMCPTreatsChatCreateAndRenameAsWrites(t *testing.T) {
 		t.Fatalf("send allowed by create-only list: %v", err)
 	}
 }
+
+func listedIDs(out map[string]any) map[string]bool {
+	ids := map[string]bool{}
+	for _, it := range out["items"].([]any) {
+		ids[it.(map[string]any)["id"].(string)] = true
+	}
+	return ids
+}
+
+func TestTeamsListSkipsHiddenChats(t *testing.T) {
+	_, _, run := adminDeps(t)
+	if code, _ := run("hide", "chat-2"); code != 0 {
+		t.Fatal(code)
+	}
+	code, out := run("list", "--top", "50")
+	if code != 0 || listedIDs(out)["chat-2"] || !listedIDs(out)["chat-1"] {
+		t.Fatal(code, out)
+	}
+	code, out = run("list", "--top", "50", "--include-hidden")
+	if code != 0 || !listedIDs(out)["chat-2"] {
+		t.Fatal(code, out)
+	}
+	for _, it := range out["items"].([]any) {
+		if c := it.(map[string]any); (c["id"] == "chat-2") != (c["hidden"] == true) {
+			t.Fatal("hidden flag wrong", c)
+		}
+	}
+	if code, _ := run("unhide", "chat-2"); code != 0 {
+		t.Fatal(code)
+	}
+	if code, out = run("list", "--top", "50"); code != 0 || !listedIDs(out)["chat-2"] {
+		t.Fatal(code, out)
+	}
+}

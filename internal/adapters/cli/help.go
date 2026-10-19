@@ -87,7 +87,9 @@ Output modes: --json (default) --human
 
 const teamsListHelp = `m365 teams list — list chats
 
-Flags: --top (default 20, max 50) --page-token
+Flags: --top (default 20, max 50) --page-token --include-hidden
+Chats you hid with teams hide are skipped; --include-hidden lists them too, marked hidden: true
+(use it to find a CHAT_ID for teams unhide).
 Output: JSON (default) or --human.
 `
 
