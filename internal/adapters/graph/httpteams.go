@@ -142,6 +142,7 @@ type graphChatMsg struct {
 	} `json:"from"`
 }
 type graphIdentity struct {
+	ID          string `json:"id"`
 	DisplayName string `json:"displayName"`
 }
 
@@ -154,8 +155,12 @@ func (g graphChatMsg) toChatMessage(chatID string) domain.ChatMessage {
 	if g.From != nil {
 		if g.From.User != nil {
 			m.From = g.From.User.DisplayName
+			m.FromUserID = g.From.User.ID
+			m.SenderType = "user"
 		} else if g.From.Application != nil {
 			m.From = g.From.Application.DisplayName
+			m.FromApplicationID = g.From.Application.ID
+			m.SenderType = "application"
 		}
 	}
 	return m

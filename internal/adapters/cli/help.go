@@ -96,6 +96,8 @@ const teamsMessagesHelp = `m365 teams messages — read messages in a chat
 Required: CHAT_ID (from teams list or teams find)
 Flags: --top (default 20, max 50) --page-token --include-system
 Each item has from: the sender's display name, or the app name for bot posts.
+Original Graph identity is preserved as sender_type plus from_user_id or from_application_id.
+Use the original ID, never the display name, to authorize a reply; absent IDs stay absent.
 System events (member added, call ended) are skipped unless --include-system.
 Output: JSON (default) or --human.
 `
