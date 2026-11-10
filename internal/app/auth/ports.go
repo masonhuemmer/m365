@@ -50,6 +50,7 @@ func Status(s Store) (domain.Session, error) {
 		TeamsConsented:    b.Teams,
 		CalendarConsented: b.Calendar,
 		FilesConsented:    b.Files,
+		MeetingsConsented: b.Meetings,
 	}, nil
 }
 
@@ -107,5 +108,11 @@ func RequireFiles(sess domain.Session) error {
 
 // RequireMeetings checks the opt-in meetings consent.
 func RequireMeetings(sess domain.Session) error {
+	if err := Require(sess, false, false); err != nil {
+		return err
+	}
+	if !sess.MeetingsConsented {
+		return &domain.Error{Class: domain.ClassAuth, Message: "missing meetings consent", Hint: "run m365 auth login --meetings"}
+	}
 	return nil
 }
