@@ -112,7 +112,13 @@ On a machine with no browser (SSH, a container, a locked-down Windows PC), use t
 m365 auth login --device-code
 ```
 
-`signed_in` and `session_usable` should be true, with the namespaces you granted (`mail`, `teams`, `calendar`, `files`). Tokens go in the macOS keychain, with a file fallback if needed.
+Reading Teams meeting transcripts needs two more permissions: `OnlineMeetings.Read` and `OnlineMeetingTranscript.Read.All`. The second one needs a tenant administrator's consent, so a plain login does not ask for either. When you need transcripts, sign in with `--meetings`. It works with `--device-code` too. If your tenant has not granted the permissions, sign-in stops at an administrator-approval prompt, and a plain `m365 auth login` still works.
+
+```sh
+m365 auth login --meetings
+```
+
+`signed_in` and `session_usable` should be true, with the namespaces you granted (`mail`, `teams`, `calendar`, `files`, `meetings`). Tokens go in the macOS keychain, with a file fallback if needed.
 
 Do not run `auth login` through MCP. If status is not usable, stop and log in from a terminal.
 
@@ -182,6 +188,25 @@ m365 calendar free --when tomorrow
 m365 calendar create --when 'tomorrow at 1:30 pm' --subject 'Sync' --dry-run
 m365 files list --human
 ```
+
+Saving over an existing file with `--overwrite` leaves the file readable by you only (mode 0600).
+
+### Meeting transcripts
+
+Save the Teams transcript of a meeting you were invited to, with the speaker named on every line:
+
+```sh
+m365 auth login --meetings                       # once
+m365 calendar list --human                       # find the event id
+m365 meetings transcripts --event EVENT_ID
+m365 meetings transcript --event EVENT_ID --out ~/notes/meeting.vtt
+```
+
+- The file is the WebVTT that Teams wrote, byte for byte, readable by you only. The command prints a summary that lists the speakers. It never prints the transcript text.
+- `--event` covers transcripts that started from 1 hour before the event to 1 hour after it ended. `--join-url URL` covers the whole meeting.
+- If more than one transcript is in scope, list them and pass `--id`.
+- Limits: 10 pages of transcripts, and 10 MiB per transcript.
+- Exit 4 naming `GraphAccessToTranscriptsDisabled` or `SpeakerAttributionNotAllowed` means a tenant setting blocks the read. A Teams administrator controls those settings.
 
 ## Agents (MCP)
 
