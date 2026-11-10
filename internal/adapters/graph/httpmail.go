@@ -102,15 +102,14 @@ func (c *HTTPClient) do(ctx context.Context, method, path string) (*http.Respons
 
 func allowedNext(base, next string) bool {
 	u, err := url.Parse(next)
-	if err != nil || (u.Scheme != "https" && u.Scheme != "http") {
+	if err != nil {
 		return false
 	}
-	host := strings.ToLower(u.Host)
-	if strings.Contains(host, "graph.microsoft.com") {
+	if u.Scheme == "https" && strings.EqualFold(u.Host, "graph.microsoft.com") {
 		return true
 	}
 	b, err := url.Parse(base)
-	return err == nil && strings.EqualFold(b.Host, u.Host)
+	return err == nil && u.Scheme == b.Scheme && strings.EqualFold(b.Host, u.Host)
 }
 
 func encodeNext(next string) string {
