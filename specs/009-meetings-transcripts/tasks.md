@@ -223,28 +223,28 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
 
 ### Scaffold and tests for User Story 2 (MANDATORY)
 
-- [ ] T030 [US2] SCAFFOLD, then a SCAFFOLD commit: `List(ctx, st Store, sess domain.Session, t Target) (domain.TranscriptList, error)`, returning a zero value, in internal/app/meetings/transcripts.go.
-- [ ] T031 [P] [US2] Write RED app tests in internal/app/meetings/list_test.go, using a fake store in the style of T017:
+- [X] T030 [US2] SCAFFOLD, then a SCAFFOLD commit: `List(ctx, st Store, sess domain.Session, t Target) (domain.TranscriptList, error)`, returning a zero value, in internal/app/meetings/transcripts.go.
+- [X] T031 [P] [US2] Write RED app tests in internal/app/meetings/list_test.go, using a fake store in the style of T017:
   - Transcripts at `14:00:00Z`, `15:05:00Z`, `13:59:59Z` and `16:30:01Z`, with `--event`, give exactly `Count 2`, items `15:05` then `14:00`.
   - With `--join-url`, they give all four, newest first.
   - Equal `Created` sorts by `ID` ascending.
   - No transcripts gives `Count 0`, and `json.Marshal` of the result is exactly `{"count":0,"items":[]}`.
   - The consent and target errors are the same as T017's. `Out` is not required. List never calls `TranscriptContent`.
-- [ ] T032 [P] [US2] Write a RED budget test in internal/adapters/graph/meetings_list_budget_test.go: `meetings.List` with `--event` over 10 pages takes exactly 12 requests, and with `--join-url` exactly 11.
-- [ ] T033 [P] [US2] Write RED CLI tests in internal/adapters/cli/meetings_list_test.go:
+- [X] T032 [P] [US2] Write a RED budget test in internal/adapters/graph/meetings_list_budget_test.go: `meetings.List` with `--event` over 10 pages takes exactly 12 requests, and with `--join-url` exactly 11.
+- [X] T033 [P] [US2] Write RED CLI tests in internal/adapters/cli/meetings_list_test.go:
   - `m365 meetings transcripts --event evt-online` prints exactly `{"count":1,"items":[{"id":"t1","created":"2030-01-15T15:05:00Z","ended":"2030-01-15T15:29:00Z"}]}` plus a newline.
   - The empty case prints `{"count":0,"items":[]}`.
   - `--human` prints the same object indented.
   - `m365 meetings transcripts --help` prints `meetingsHelp` with exit 0.
   - Both selectors exit 3.
-- [ ] T034 [P] [US2] Write Gherkin features/meetings/list.feature and acceptance/steps/meetings_list_steps.go, using the US1 harness without editing it. Scenarios: list by event (window only), list by join URL (all, newest first), and an empty meeting gives count 0.
-- [ ] T035 [US2] Run `go test ./internal/app/meetings/ ./internal/adapters/graph/ ./internal/adapters/cli/` and `make acceptance`, confirm the assertion failures, then make a RED commit with T031–T034 (the list tests and features/meetings/list.feature).
+- [X] T034 [P] [US2] Write Gherkin features/meetings/list.feature and acceptance/steps/meetings_list_steps.go, using the US1 harness without editing it. Scenarios: list by event (window only), list by join URL (all, newest first), and an empty meeting gives count 0.
+- [X] T035 [US2] Run `go test ./internal/app/meetings/ ./internal/adapters/graph/ ./internal/adapters/cli/` and `make acceptance`, confirm the assertion failures, then make a RED commit with T031–T034 (the list tests and features/meetings/list.feature).
 
 ### Implementation for User Story 2
 
-- [ ] T036 [US2] Implement `List` in internal/app/meetings/transcripts.go, reusing `checkTarget`, `resolve`, `inScope` and `sortNewest`. `Items` is never `nil`.
-- [ ] T037 [US2] Add the verb `transcripts` to `runMeetings` in internal/adapters/cli/meetings.go, with flags `--event` and `--join-url`, and `hasHelp` handling.
-- [ ] T038 [US2] Run `go test ./...` and `make acceptance`, then make a GREEN commit with T036–T037 (internal/app/meetings/transcripts.go, internal/adapters/cli/meetings.go).
+- [X] T036 [US2] Implement `List` in internal/app/meetings/transcripts.go, reusing `checkTarget`, `resolve`, `inScope` and `sortNewest`. `Items` is never `nil`.
+- [X] T037 [US2] Add the verb `transcripts` to `runMeetings` in internal/adapters/cli/meetings.go, with flags `--event` and `--join-url`, and `hasHelp` handling.
+- [X] T038 [US2] Run `go test ./...` and `make acceptance`, then make a GREEN commit with T036–T037 (internal/app/meetings/transcripts.go, internal/adapters/cli/meetings.go).
 
 **Checkpoint**: Both verbs work against the fake.
 
@@ -258,12 +258,12 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
 
 ### Scaffold and tests for User Story 3 (MANDATORY)
 
-- [ ] T039 [US3] SCAFFOLD in internal/adapters/graph/oauth.go, internal/adapters/graph/oauth_loopback.go, internal/adapters/graph/device.go and internal/adapters/cli/run.go, then a SCAFFOLD commit:
+- [X] T039 [US3] SCAFFOLD in internal/adapters/graph/oauth.go, internal/adapters/graph/oauth_loopback.go, internal/adapters/graph/device.go and internal/adapters/cli/run.go, then a SCAFFOLD commit:
   - `var MeetingsScopes = []string{}` in internal/adapters/graph/oauth.go;
   - a variadic `extra ...string` on `PKCEConfig`, `RealLogin` and `RealDeviceLogin`, unused for now;
   - a `requested []string` parameter on `blobFromToken`, unused for now, with both callers (oauth_loopback.go and device.go) passing `cfg.Scopes`;
   - `MeetingsLogin` and `MeetingsDeviceLogin auth.LoginFn` in `Deps` in internal/adapters/cli/run.go.
-- [ ] T040 [P] [US3] Write RED tests in internal/adapters/graph/meetings_login_test.go. They call `blobFromToken` directly with tokens whose `AccessToken` is `""`, so that `fetchMe` never calls live Graph.
+- [X] T040 [P] [US3] Write RED tests in internal/adapters/graph/meetings_login_test.go. They call `blobFromToken` directly with tokens whose `AccessToken` is `""`, so that `fetchMe` never calls live Graph.
   - `PKCEConfig("c","t","")` returns exactly `["openid","offline_access","profile","Mail.Read","Mail.Send","Chat.Read","Chat.ReadWrite","ChatMessage.Send","Calendars.ReadWrite","Files.ReadWrite"]` (SC-005).
   - `PKCEConfig("c","t","", MeetingsScopes...)` returns that list plus `OnlineMeetings.Read` and `OnlineMeetingTranscript.Read.All`.
   - `MeetingsScopes` is exactly those two.
@@ -273,7 +273,7 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
     - scope `""` with the requested list including both gives `true`;
     - scope `""` with the plain list gives `false`;
     - scope `"https://graph.microsoft.com/OnlineMeetings.Read https://graph.microsoft.com/OnlineMeetingTranscript.Read.All"` gives `true`.
-- [ ] T041 [P] [US3] Write RED CLI tests in internal/adapters/cli/meetings_login_test.go (do not edit auth_test.go):
+- [X] T041 [P] [US3] Write RED CLI tests in internal/adapters/cli/meetings_login_test.go (do not edit auth_test.go):
   - `auth login --meetings` calls only `MeetingsLogin`.
   - `auth login --device-code --meetings` and `auth login --meetings --device-code` call only `MeetingsDeviceLogin`.
   - A plain `auth login` calls only `Login`.
@@ -284,23 +284,23 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
   - Without meetings consent, `meetings transcript --join-url https://teams.example.test/x --out P` (the US1 verb, so this test doesn't depend on US2) exits 4 with stderr exactly `{"class":"auth","message":"missing meetings consent","hint":"run m365 auth login --meetings"}`.
   - `rootHelp` contains `Sign in: m365 auth login [--device-code] [--meetings]`.
   - Over MCP, `m365_status` shows `meetings`.
-- [ ] T042 [P] [US3] Write Gherkin features/meetings/consent.feature and acceptance/steps/meetings_consent_steps.go. Scenarios:
+- [X] T042 [P] [US3] Write Gherkin features/meetings/consent.feature and acceptance/steps/meetings_consent_steps.go. Scenarios:
   - a plain login reports meetings false;
   - a meetings login reports meetings true;
   - a meetings verb without meetings consent exits 4.
-- [ ] T043 [US3] Run `go test ./internal/adapters/graph/ ./internal/adapters/cli/` and `make acceptance`, confirm the assertion failures, then make a RED commit with T040–T042 (the login tests and features/meetings/consent.feature).
+- [X] T043 [US3] Run `go test ./internal/adapters/graph/ ./internal/adapters/cli/` and `make acceptance`, confirm the assertion failures, then make a RED commit with T040–T042 (the login tests and features/meetings/consent.feature).
 
 ### Implementation for User Story 3
 
-- [ ] T044 [US3] In internal/adapters/graph/oauth.go, set `MeetingsScopes = []string{"OnlineMeetings.Read", "OnlineMeetingTranscript.Read.All"}`, and make `PKCEConfig` append `extra` to a copy of the base list.
-- [ ] T045 [US3] In internal/adapters/graph/oauth_loopback.go, `blobFromToken` sets `Meetings` from the granted scope (`strings.Contains` for both names), or from `requested` when `scope == ""`, independent of `AccessToken`. `RealLogin` passes `extra` to `PKCEConfig`. In internal/adapters/graph/device.go, `RealDeviceLogin` does the same. The other flags are unchanged.
-- [ ] T046 [US3] In internal/adapters/cli/auth.go:
+- [X] T044 [US3] In internal/adapters/graph/oauth.go, set `MeetingsScopes = []string{"OnlineMeetings.Read", "OnlineMeetingTranscript.Read.All"}`, and make `PKCEConfig` append `extra` to a copy of the base list.
+- [X] T045 [US3] In internal/adapters/graph/oauth_loopback.go, `blobFromToken` sets `Meetings` from the granted scope (`strings.Contains` for both names), or from `requested` when `scope == ""`, independent of `AccessToken`. `RealLogin` passes `extra` to `PKCEConfig`. In internal/adapters/graph/device.go, `RealDeviceLogin` does the same. The other flags are unchanged.
+- [X] T046 [US3] In internal/adapters/cli/auth.go:
   - `runLogin` loops over the flags, accepting `--device-code` and `--meetings` each at most once; anything else gives usage `unknown login flag "X"`.
   - It picks `Login`, `DeviceLogin`, `MeetingsLogin` or `MeetingsDeviceLogin`.
   - `nsMap` adds `"meetings": st.MeetingsConsented`.
-- [ ] T047 [US3] Add the root help line `Sign in: m365 auth login [--device-code] [--meetings]` in internal/adapters/cli/help.go. In cmd/m365/main.go, wire `d.MeetingsLogin = graph.RealLogin(cfg.ClientID, cfg.TenantID, graph.MeetingsScopes...)` and `d.MeetingsDeviceLogin = graph.RealDeviceLogin(cfg.ClientID, cfg.TenantID, graph.MeetingsScopes...)` in the live branch only.
-- [ ] T048 [US3] Add the property `"meetings": { "type": "boolean" }` to `namespaces` in specs/001-m365-cli/contracts/json-stdout.schema.json. This is additive, as spec 002 did, and the only edit to a 001 file.
-- [ ] T049 [US3] Run `go test ./...` and `make acceptance`, then make a GREEN commit with T044–T048 (internal/adapters/graph/, internal/adapters/cli/, cmd/m365/main.go, specs/001-m365-cli/contracts/json-stdout.schema.json).
+- [X] T047 [US3] Add the root help line `Sign in: m365 auth login [--device-code] [--meetings]` in internal/adapters/cli/help.go. In cmd/m365/main.go, wire `d.MeetingsLogin = graph.RealLogin(cfg.ClientID, cfg.TenantID, graph.MeetingsScopes...)` and `d.MeetingsDeviceLogin = graph.RealDeviceLogin(cfg.ClientID, cfg.TenantID, graph.MeetingsScopes...)` in the live branch only.
+- [X] T048 [US3] Add the property `"meetings": { "type": "boolean" }` to `namespaces` in specs/001-m365-cli/contracts/json-stdout.schema.json. This is additive, as spec 002 did, and the only edit to a 001 file.
+- [X] T049 [US3] Run `go test ./...` and `make acceptance`, then make a GREEN commit with T044–T048 (internal/adapters/graph/, internal/adapters/cli/, cmd/m365/main.go, specs/001-m365-cli/contracts/json-stdout.schema.json).
 
 **Checkpoint**: MVP complete (US1 + US3). The live check (T062) can run now.
 
@@ -446,4 +446,10 @@ US4 tests:              T051 ‖ T052 ‖ T053 ‖ T054
   - Approved edit: gosec G302 flagged the deliberate `0o644` in the locked step at acceptance/steps/meetings_save_steps.go:54. **Mason approved on 2026-11-10** a comment-only `#nosec G302` with a reason, committed alone as `21a2fa3`.
   - GREEN `e0325e0`. The CRAP ratchet flagged `Run` (internal/adapters/cli/run.go) rising from 21.6 to 22.6 because of the new `case`. Per the baseline's rule ("fix a function when you change it"), GREEN routes workload namespaces through `namespaceRunners()`, built per call to avoid an initialization cycle through `runMCP`. `Run` is now under its baselined score.
   - `make verify` exit 0: gosec 0 issues, govulncheck 0 affecting, crap ok (525 functions, 44 baselined). run.go 238 lines, help.go 180.
+- **US2**: SCAFFOLD `d86a96b`. RED `3d7dfd5`: every failure was an assertion or the expected unknown verb (the help-and-usage test already passed because help is checked before the verb). GREEN in the next commit. `make verify` exit 0, crap ok (527 functions).
+- **US3**:
+  - SCAFFOLD `e6842bd`. RED `e6788af`: every failure was an assertion or the expected unknown flag. The plain-scopes, repeated-flag and no-consent tests passed as guards.
+  - GREEN `8b71262`. `make verify` exit 0, crap ok (529 functions).
+  - Deviation, recorded: the scaffold passes `cfg.Scopes` through `LoginPKCE` (internal/adapters/graph/oauth_loopback.go), a baselined CRAP function (156; complexity 12, no coverage). Its score is unchanged and the gate passes. Its waiver says to fix a function when you change it, but covering `LoginPKCE` needs `fetchMe` injected so the test doesn't call live Graph. That is out of scope here; Mason decides.
+  - MVP (US1 + US3) is complete. Live check T062 is unblocked.
 
