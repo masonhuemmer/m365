@@ -176,5 +176,14 @@ func checkContent(b []byte) ([]string, error) {
 
 // List returns the meeting's in-scope transcripts, newest first.
 func List(ctx context.Context, st Store, sess domain.Session, t Target) (domain.TranscriptList, error) {
-	return domain.TranscriptList{}, nil
+	_, items, win, err := meetingTranscripts(ctx, st, sess, t, false)
+	if err != nil {
+		return domain.TranscriptList{}, err
+	}
+	scoped := inScope(items, win)
+	list := domain.TranscriptList{Count: len(scoped), Items: make([]domain.Transcript, 0, len(scoped))}
+	for _, it := range scoped {
+		list.Items = append(list.Items, it.Transcript)
+	}
+	return list, nil
 }

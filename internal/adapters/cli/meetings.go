@@ -24,11 +24,25 @@ func runMeetings(args []string, d Deps, format string) int {
 		return fail(d, err)
 	}
 	switch verb {
+	case "transcripts":
+		return meetingsList(args, d, sess, format)
 	case "transcript":
 		return meetingsSave(args, d, sess, format)
 	default:
 		return fail(d, domain.Usagef("unknown meetings verb %q", verb))
 	}
+}
+
+func meetingsList(args []string, d Deps, sess domain.Session, format string) int {
+	t, err := meetingsTarget("meetings transcripts", args, d, false)
+	if err != nil {
+		return fail(d, err)
+	}
+	list, err := meetings.List(ctx(), d.Meetings, sess, t)
+	if err != nil {
+		return fail(d, err)
+	}
+	return success(d, format, list)
 }
 
 func meetingsSave(args []string, d Deps, sess domain.Session, format string) int {
