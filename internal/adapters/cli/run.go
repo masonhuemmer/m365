@@ -82,24 +82,25 @@ func Run(args []string, d Deps) int {
 	if ns == "chat" {
 		ns = "teams"
 	}
-	switch ns {
-	case "auth":
+	if ns == "auth" {
 		return runAuth(rest, d, format, verbose)
-	case "mail":
-		return runMail(rest, d, format)
-	case "teams":
-		return runTeams(rest, d, format)
-	case "calendar":
-		return runCalendar(rest, d, format)
-	case "files":
-		return runFiles(rest, d, format)
-	case "mcp":
-		return runMCP(rest, d, format)
-	default:
-		if strings.HasPrefix(ns, "-") {
-			return writeHelp(d.Stdout, rootHelp)
-		}
-		return fail(d, domain.Usagef("unknown namespace %q", ns))
+	}
+	if run, ok := namespaceRunners()[ns]; ok {
+		return run(rest, d, format)
+	}
+	if strings.HasPrefix(ns, "-") {
+		return writeHelp(d.Stdout, rootHelp)
+	}
+	return fail(d, domain.Usagef("unknown namespace %q", ns))
+}
+
+// namespaceRunners maps each workload namespace to its runner. It is built
+// per call: runMCP re-enters Run, so a package-level map would be an
+// initialization cycle.
+func namespaceRunners() map[string]func([]string, Deps, string) int {
+	return map[string]func([]string, Deps, string) int{
+		"mail": runMail, "teams": runTeams, "calendar": runCalendar,
+		"files": runFiles, "meetings": runMeetings, "mcp": runMCP,
 	}
 }
 

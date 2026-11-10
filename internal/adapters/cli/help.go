@@ -10,6 +10,7 @@ Namespaces:
   teams     Teams chats (alias: chat)
   calendar  own calendars and events
   files     own OneDrive
+  meetings  Teams meeting transcripts
   mcp       stdio MCP for agents (serve)
 
 Output: JSON on stdout by default. --human for text. Diagnostics on stderr.
@@ -37,6 +38,20 @@ Verbs: root, list, get, download, upload, create-folder, delete, move
 Flags: --folder --top (default 20, max 50) --page-token --out --overwrite --file --name --dry-run
 Upload: max 100 MiB per file. Download requires --out; existing file refused without --overwrite.
 Output: JSON (default) or --human. No file bytes on stdout.
+`
+
+const meetingsHelp = `m365 meetings — Teams meeting transcripts you were invited to
+
+Verbs: transcripts (list), transcript (save one)
+Name the meeting: --event EVENT_ID (from calendar list) or --join-url URL (https). Exactly one.
+--event lists transcripts that started from 1 hour before the event to 1 hour after it ended.
+--join-url lists all of the meeting's transcripts.
+Save: --out FILE (required) --id TRANSCRIPT_ID (when several) --overwrite
+The file is the attributed WebVTT, byte for byte, owner-only. No transcript text on stdout.
+Limits: 10 pages of transcripts; 10 MiB of content.
+Needs: m365 auth login --meetings (admin-consented scopes); --event also needs calendar consent.
+Tenant codes (exit 4): GraphAccessToTranscriptsDisabled, SpeakerAttributionNotAllowed.
+Output: JSON (default) or --human.
 `
 
 const mailListHelp = `m365 mail list — list messages

@@ -72,6 +72,7 @@ func buildDeps(cfg config.Config, cfgErr error, getenv func(string) string) cli.
 		d.Teams = &graph.HTTPTeams{HTTPClient: httpc}
 		d.Calendar = &graph.HTTPCalendar{HTTPClient: httpc}
 		d.Files = &graph.HTTPFiles{HTTPClient: httpc}
+		d.Meetings = &graph.HTTPMeetings{HTTPClient: httpc}
 		d.Login = graph.RealLogin(cfg.ClientID, cfg.TenantID)
 		d.DeviceLogin = graph.RealDeviceLogin(cfg.ClientID, cfg.TenantID)
 		classification := cfg.Experimental.MailResponseClassification
