@@ -52,7 +52,8 @@
             "mail": { "type": "boolean" },
             "teams": { "type": "boolean" },
             "calendar": { "type": "boolean" },
-            "files": { "type": "boolean" }
+            "files": { "type": "boolean" },
+            "meetings": { "type": "boolean" }
           }
         }
       }

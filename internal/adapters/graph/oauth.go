@@ -22,7 +22,7 @@ func FakeLoginAll(mail, teams, calendar, files bool) auth.LoginFn {
 }
 
 // MeetingsScopes are added by m365 auth login --meetings.
-var MeetingsScopes = []string{}
+var MeetingsScopes = []string{"OnlineMeetings.Read", "OnlineMeetingTranscript.Read.All"}
 
 func PKCEConfig(clientID, tenant, redirect string, extra ...string) *oauth2.Config {
 	return &oauth2.Config{
@@ -34,7 +34,7 @@ func PKCEConfig(clientID, tenant, redirect string, extra ...string) *oauth2.Conf
 			AuthStyle:     oauth2.AuthStyleInParams,
 			DeviceAuthURL: "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0/devicecode",
 		},
-		Scopes: []string{"openid", "offline_access", "profile", "Mail.Read", "Mail.Send", "Chat.Read", "Chat.ReadWrite", "ChatMessage.Send", "Calendars.ReadWrite", "Files.ReadWrite"},
+		Scopes: append([]string{"openid", "offline_access", "profile", "Mail.Read", "Mail.Send", "Chat.Read", "Chat.ReadWrite", "ChatMessage.Send", "Calendars.ReadWrite", "Files.ReadWrite"}, extra...),
 	}
 }
 

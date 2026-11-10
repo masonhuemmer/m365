@@ -75,6 +75,8 @@ func buildDeps(cfg config.Config, cfgErr error, getenv func(string) string) cli.
 		d.Meetings = &graph.HTTPMeetings{HTTPClient: httpc}
 		d.Login = graph.RealLogin(cfg.ClientID, cfg.TenantID)
 		d.DeviceLogin = graph.RealDeviceLogin(cfg.ClientID, cfg.TenantID)
+		d.MeetingsLogin = graph.RealLogin(cfg.ClientID, cfg.TenantID, graph.MeetingsScopes...)
+		d.MeetingsDeviceLogin = graph.RealDeviceLogin(cfg.ClientID, cfg.TenantID, graph.MeetingsScopes...)
 		classification := cfg.Experimental.MailResponseClassification
 		if cfgErr == nil && classification.Enabled {
 			classifier, err := jev.NewClient(typesafeKey(getenv), classification.Model)
