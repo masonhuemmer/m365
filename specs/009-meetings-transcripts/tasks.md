@@ -354,7 +354,7 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T059 [P] Document the feature in README.md and docs/m365.md:
+- [X] T059 [P] Document the feature in README.md and docs/m365.md:
   - the `meetings` namespace, its two verbs and both selectors;
   - the `--meetings` sign-in and why it is opt-in (admin-consented scopes);
   - the event-window rule and `--id`;
@@ -363,7 +363,7 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
   - that `--out` is required, saves are owner-only, and `files download` overwrites are now owner-only too.
 
   Commit as `docs: meetings transcripts`. Docs are not behaviour, so no RED is needed.
-- [ ] T060 Run the gates (Makefile, scripts/filesize.sh) and record their output in Notes of specs/009-meetings-transcripts/tasks.md:
+- [X] T060 Run the gates (Makefile, scripts/filesize.sh) and record their output in Notes of specs/009-meetings-transcripts/tasks.md:
   - `make verify`;
   - `make acceptance-mutation` (note that it runs no mutator);
   - `go test -race ./internal/app/meetings/ ./internal/adapters/graph/ ./internal/adapters/cli/`;
@@ -382,7 +382,7 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
   - Then run steps 2–5 against the meeting he named in the task. Save it to `$SCRATCH`, never the repository. Report only the `speakers` array and the file mode.
   - **Stop** and report if the sign-in stops at admin approval, if a tenant code appears, or if the lookup finds no meeting or returns a 403 without a tenant code. The last case means returning to design.
   - Record the outcome in Notes without real names or transcript text. Write "speaker count N, matched the expected attendees: yes/no".
-- [ ] T063 Run every row of quickstart.md's "Automated validation" table, and mark each pass in Notes.
+- [X] T063 Run every row of quickstart.md's "Automated validation" table, and mark each pass in Notes.
 - [ ] T064 Ask Mason before any push, PR or merge, and merge only on his explicit yes. Update `~/.work/m365/2026-11-10-teams-meeting-transcripts/task.md` with the commits, gates, reviews and the live-check outcome.
 
 ---
@@ -456,4 +456,11 @@ US4 tests:              T051 ‖ T052 ‖ T053 ‖ T054
   - SCAFFOLD `676789c`. RED `adec3d9`: every failure was an assertion (the generic message instead of the code). GREEN in the next commit. `make verify` exit 0, crap ok (531 functions).
   - T057 needed one replacement, not four: every adapter request goes through `HTTPMeetings.get`.
   - The refusal steps use the prefix `a meetings tenant with`. Note: the US3 consent step `a meetings fake without meetings consent` starts with the US1 prefix `a meetings fake`. It resolves correctly only because `meetings_consent_steps.go` sorts, and so registers, before `meetings_save_steps.go`. Both files are locked, so this is recorded rather than changed.
+- **T059**: docs `e13062c` (README "Sign in" and "Meeting transcripts"; docs/m365.md namespaces table, limits, auth, files download, new `meetings` section).
+- **T060** gates on `e13062c`:
+  - `make verify` exit 0: filesize ok (350 files, 7 noted); gosec 0 issues; govulncheck 0 affecting; acceptance ok; crap ok (531 functions, 44 baselined).
+  - `make acceptance-mutation` exit 0, printing `test_success`. It runs no mutator (pre-existing).
+  - `go test -race` on meetings, graph and cli: ok.
+  - Largest touched Go files: run.go 240, transcripts.go 189, help.go 181, oauth_loopback.go 165, httpmeetings.go 159. None is over 250, so no file-size note is needed.
+- **T063**: every row of the quickstart "Automated validation" table passes (each run with `-count=1`). `TestVoiceNamesFromFixture` gives `[Avery Example, Blake Sample]`.
 
