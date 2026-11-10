@@ -14,6 +14,7 @@ import (
 	"github.com/masonhuemmer/m365/internal/app/calendar"
 	"github.com/masonhuemmer/m365/internal/app/files"
 	"github.com/masonhuemmer/m365/internal/app/mail"
+	"github.com/masonhuemmer/m365/internal/app/meetings"
 	"github.com/masonhuemmer/m365/internal/app/teams"
 	"github.com/masonhuemmer/m365/internal/config"
 	"github.com/masonhuemmer/m365/internal/domain"
@@ -34,6 +35,7 @@ type Deps struct {
 	ChatMap             teams.ChatMap
 	Calendar            calendar.Store
 	Files               files.Store
+	Meetings            meetings.Store
 	Login               auth.LoginFn
 	DeviceLogin         auth.LoginFn
 	Write               func(string, []byte, bool) error
