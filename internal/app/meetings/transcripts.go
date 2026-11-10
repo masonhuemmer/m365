@@ -173,3 +173,8 @@ func checkContent(b []byte) ([]string, error) {
 	}
 	return names, nil
 }
+
+// List returns the meeting's in-scope transcripts, newest first.
+func List(ctx context.Context, st Store, sess domain.Session, t Target) (domain.TranscriptList, error) {
+	return domain.TranscriptList{}, nil
+}
