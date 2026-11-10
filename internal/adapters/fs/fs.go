@@ -39,7 +39,10 @@ func WriteFile(path string, data []byte, overwrite bool) error {
 	}
 	flags := os.O_WRONLY | os.O_CREATE | os.O_EXCL
 	if overwrite {
-		flags = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+		if st, err := os.Lstat(path); err == nil && !st.Mode().IsRegular() {
+			return domain.Usagef("destination is not a regular file: %s", path)
+		}
+		flags = os.O_WRONLY | os.O_CREATE
 	}
 	f, err := os.OpenFile(path, flags, 0o600) // #nosec G304 -- caller --out path
 	if errors.Is(err, iofs.ErrExist) {
@@ -62,9 +65,14 @@ type ownedFile interface {
 	Close() error
 }
 
-// writeOwnerOnly makes an overwritten file 0600 too: OpenFile keeps an existing file's mode.
+// writeOwnerOnly makes an overwritten file 0600 too (OpenFile keeps an
+// existing file's mode), and truncates only after Chmod succeeds, so a
+// failure leaves the old content in place.
 func writeOwnerOnly(f ownedFile, data []byte) error {
 	err := f.Chmod(0o600)
+	if err == nil {
+		err = f.Truncate(0)
+	}
 	if err == nil {
 		_, err = f.Write(data)
 	}
