@@ -38,6 +38,8 @@ type Deps struct {
 	Meetings            meetings.Store
 	Login               auth.LoginFn
 	DeviceLogin         auth.LoginFn
+	MeetingsLogin       auth.LoginFn
+	MeetingsDeviceLogin auth.LoginFn
 	Write               func(string, []byte, bool) error
 	Watch               WatchStore
 	Stdin               io.Reader

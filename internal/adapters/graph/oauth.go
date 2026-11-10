@@ -21,7 +21,10 @@ func FakeLoginAll(mail, teams, calendar, files bool) auth.LoginFn {
 	}
 }
 
-func PKCEConfig(clientID, tenant, redirect string) *oauth2.Config {
+// MeetingsScopes are added by m365 auth login --meetings.
+var MeetingsScopes = []string{}
+
+func PKCEConfig(clientID, tenant, redirect string, extra ...string) *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:    clientID,
 		RedirectURL: redirect,
