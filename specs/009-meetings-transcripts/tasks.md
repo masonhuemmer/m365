@@ -46,11 +46,11 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
 
 **Purpose**: Check the worktree, record the baseline, and find any locked test that this feature would break.
 
-- [ ] T001 In `~/Git/worktrees/m365/009-meetings-transcripts`, confirm that the branch is `009-meetings-transcripts` at `6b1356b`, on top of `main@4877baf`. Confirm that `git status --short` shows only `?? .tools`. Confirm the repository-local git identity with `git config user.name` and `git config user.email`.
-- [ ] T002 Record the baseline in the Notes section of specs/009-meetings-transcripts/tasks.md:
+- [X] T001 In `~/Git/worktrees/m365/009-meetings-transcripts`, confirm that the branch is `009-meetings-transcripts` at `6b1356b`, on top of `main@4877baf`. Confirm that `git status --short` shows only `?? .tools`. Confirm the repository-local git identity with `git config user.name` and `git config user.email`.
+- [X] T002 Record the baseline in the Notes section of specs/009-meetings-transcripts/tasks.md:
   - the result of `make verify`;
   - the line counts from `wc -l internal/adapters/cli/run.go internal/adapters/cli/help.go internal/adapters/cli/auth.go internal/app/auth/ports.go internal/adapters/graph/oauth_loopback.go internal/adapters/fs/fs.go cmd/m365/main.go`.
-- [ ] T003 Find the existing tests that the planned behaviour changes would break, using a scratch edit of internal/adapters/cli/auth.go, internal/adapters/fs/fs.go and internal/adapters/cli/help.go that is never committed:
+- [X] T003 Find the existing tests that the planned behaviour changes would break, using a scratch edit of internal/adapters/cli/auth.go, internal/adapters/fs/fs.go and internal/adapters/cli/help.go that is never committed:
   - add `"meetings": false` to `nsMap` in internal/adapters/cli/auth.go;
   - make `fs.WriteFile` in internal/adapters/fs/fs.go use `O_EXCL`, plus `Chmod(0o600)` on overwrite;
   - add a `meetings` line to `rootHelp` in internal/adapters/cli/help.go;
@@ -70,27 +70,27 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
 
 ### Slice F1: owner-only shared save (its own RED, before any meetings code)
 
-- [ ] T004 Write RED tests in internal/adapters/fs/write_private_test.go (new file; do not edit fs_test.go). Each case uses `t.TempDir()`, and every mode check is skipped when `runtime.GOOS == "windows"`.
+- [X] T004 Write RED tests in internal/adapters/fs/write_private_test.go (new file; do not edit fs_test.go). Each case uses `t.TempDir()`, and every mode check is skipped when `runtime.GOOS == "windows"`.
   - (a) A file written with mode `0o644`, then overwritten with `WriteFile(p, []byte("new"), true)`: the content is `new` and `Mode().Perm()` is `0o600`. **This case must fail at baseline.**
   - (b) An existing file and `overwrite=false`: the error has class `usage` and message exactly `destination exists; pass --overwrite`, and the content is unchanged. This is a guard; it may pass at baseline.
   - (c) A new path: the file is created with mode `0o600`. This is a guard.
-- [ ] T005 Run `go test ./internal/adapters/fs/`. Confirm that (a) fails on the mode assertion (`0644` ≠ `0600`), then make a RED commit with T004 only.
-- [ ] T006 GREEN in internal/adapters/fs/fs.go `WriteFile`, per research R9:
+- [X] T005 Run `go test ./internal/adapters/fs/`. Confirm that (a) fails on the mode assertion (`0644` ≠ `0600`), then make a RED commit with T004 only.
+- [X] T006 GREEN in internal/adapters/fs/fs.go `WriteFile`, per research R9:
   - keep the empty-path check and `MkdirAll`;
   - without overwrite, `os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)`, and map `errors.Is(err, fs.ErrExist)` to the unchanged message `destination exists; pass --overwrite`;
   - with overwrite, use `os.O_WRONLY|os.O_CREATE|os.O_TRUNC` with `0o600`, then `f.Chmod(0o600)` before writing;
   - every other error stays `unwritable path: PATH`;
   - close the file and check the error from `Close`.
-- [ ] T007 Run `go test ./internal/adapters/fs/ ./internal/adapters/cli/ ./internal/app/files/`, then make a GREEN commit with T006 only.
+- [X] T007 Run `go test ./internal/adapters/fs/ ./internal/adapters/cli/ ./internal/app/files/`, then make a GREEN commit with T006 only.
 
 ### Slice F2: domain types, WebVTT rules and the meetings consent flag
 
-- [ ] T008 SCAFFOLD in internal/domain/meeting.go, internal/domain/webvtt.go, internal/domain/session.go and internal/app/auth/ports.go, then a SCAFFOLD commit:
+- [X] T008 SCAFFOLD in internal/domain/meeting.go, internal/domain/webvtt.go, internal/domain/session.go and internal/app/auth/ports.go, then a SCAFFOLD commit:
   - internal/domain/meeting.go: `Transcript{ID, Created, Ended string}` with JSON `id`, `created`, `ended`; `TranscriptList{Count int; Items []Transcript}` with JSON `count`, `items`; `SavedTranscript{Path, ID, Created, Ended string; Bytes int; Speakers []string}` with JSON `path`, `id`, `created`, `ended`, `bytes`, `speakers`.
   - internal/domain/webvtt.go: `IsWebVTT(b []byte) bool` returning `false`, and `VoiceNames(b []byte) []string` returning `nil`.
   - internal/domain/session.go: `MeetingsConsented bool`.
   - internal/app/auth/ports.go: `Blob.Meetings bool` with JSON `meetings`, and `RequireMeetings(sess domain.Session) error` returning `nil`.
-- [ ] T009 [P] Write RED tests in internal/domain/webvtt_test.go:
+- [X] T009 [P] Write RED tests in internal/domain/webvtt_test.go:
   - `IsWebVTT` is true for `WEBVTT`, `WEBVTT\n`, `WEBVTT \n`, `WEBVTT\t`, `WEBVTT\r\n`, and `\xEF\xBB\xBFWEBVTT\n`.
   - It is false for ``, `WEBVTTX`, ` WEBVTT`, `{"value":[]}`, and `webvtt\n`.
   - `VoiceNames` on the exact synthetic fixture in contracts/graph-mapping.md (BOM, `NOTE`, cue id `1`, a multi-line cue, `<v.loud Blake Sample>`, an unnamed cue) returns exactly `[]string{"Avery Example", "Blake Sample"}`.
@@ -99,16 +99,16 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
   - `<v >x</v>` and `<v>x</v>` return length 0.
   - `<b>x</b> <i>y</i>` returns length 0.
   - Put the fixture in internal/domain/testdata/meeting.vtt, with a real BOM and LF line endings, and read it with `os.ReadFile`.
-- [ ] T010 [P] Write RED tests in internal/app/auth/meetings_consent_test.go:
+- [X] T010 [P] Write RED tests in internal/app/auth/meetings_consent_test.go:
   - `Status` maps a stored `Blob{Usable: true, Meetings: true}` to `MeetingsConsented == true`.
   - `json.Unmarshal` of `{"account":"a","usable":true,"mail":true}` into `Blob` gives `Meetings == false`.
   - `RequireMeetings(domain.Session{})` gives class `auth`, message `not signed in`.
   - A signed-in, usable session without meetings gives class `auth`, message exactly `missing meetings consent`, and `(*domain.Error).Hint` exactly `run m365 auth login --meetings`.
   - With meetings consent, it returns `nil`.
-- [ ] T011 Run `go test ./internal/domain/ ./internal/app/auth/`. Confirm that every new failure is an assertion failure, then make a RED commit with T009–T010 and the testdata file.
-- [ ] T012 [P] Implement internal/domain/webvtt.go per data-model.md: "an optional UTF-8 BOM (`EF BB BF`), then `WEBVTT`, then the end of input or one of space, tab, `\r`, `\n`". `VoiceNames` uses the regular expression `<v(\.[^\s>]+)*\s+([^>]+)>`, trims each name, drops empty ones, and keeps "distinct; order of first appearance". Stdlib only.
-- [ ] T013 [P] Implement `Status` mapping and `RequireMeetings` in internal/app/auth/ports.go. Reuse `Require(sess, false, false)` for the signed-in checks, then return `&domain.Error{Class: domain.ClassAuth, Message: "missing meetings consent", Hint: "run m365 auth login --meetings"}`.
-- [ ] T014 Run `go test ./internal/domain/ ./internal/app/auth/`, then make a GREEN commit with T012–T013.
+- [X] T011 Run `go test ./internal/domain/ ./internal/app/auth/`. Confirm that every new failure is an assertion failure, then make a RED commit with T009–T010 and the testdata file.
+- [X] T012 [P] Implement internal/domain/webvtt.go per data-model.md: "an optional UTF-8 BOM (`EF BB BF`), then `WEBVTT`, then the end of input or one of space, tab, `\r`, `\n`". `VoiceNames` uses the regular expression `<v(\.[^\s>]+)*\s+([^>]+)>`, trims each name, drops empty ones, and keeps "distinct; order of first appearance". Stdlib only.
+- [X] T013 [P] Implement `Status` mapping and `RequireMeetings` in internal/app/auth/ports.go. Reuse `Require(sess, false, false)` for the signed-in checks, then return `&domain.Error{Class: domain.ClassAuth, Message: "missing meetings consent", Hint: "run m365 auth login --meetings"}`.
+- [X] T014 Run `go test ./internal/domain/ ./internal/app/auth/`, then make a GREEN commit with T012–T013.
 
 **Checkpoint**: Overwrite is owner-only, the WebVTT rules pass, and meetings consent can be required. No CLI change yet.
 
@@ -122,13 +122,13 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
 
 ### Scaffold and tests for User Story 1 (MANDATORY)
 
-- [ ] T015 [US1] SCAFFOLD in internal/app/meetings/ports.go, internal/app/meetings/transcripts.go, internal/adapters/graph/httpmeetings.go and internal/adapters/cli/run.go, then a SCAFFOLD commit:
+- [X] T015 [US1] SCAFFOLD in internal/app/meetings/ports.go, internal/app/meetings/transcripts.go, internal/adapters/graph/httpmeetings.go and internal/adapters/cli/run.go, then a SCAFFOLD commit:
   - internal/app/meetings/ports.go: `Store` with `EventMeeting(ctx, eventID string) (Occurrence, error)`, `FindMeeting(ctx, joinURL string) (string, error)`, `Transcripts(ctx, meetingID string) ([]domain.Transcript, error)` and `TranscriptContent(ctx, meetingID, transcriptID string) ([]byte, error)`; `Occurrence{JoinURL string; Start, End time.Time}`; `Target{EventID, JoinURL, ID, Out string; Overwrite bool}`.
   - internal/app/meetings/transcripts.go: `Save(ctx, st Store, sess domain.Session, t Target, write func(string, []byte, bool) error) (domain.SavedTranscript, error)`, returning zero values.
   - internal/adapters/graph/httpmeetings.go: `type HTTPMeetings struct{ *HTTPClient }`, whose four methods return zero values.
   - internal/adapters/cli/run.go: the field `Meetings meetings.Store` in `Deps` only, with no routing.
-- [ ] T016 [P] [US1] Write the isolation guard internal/app/meetings/isolation_test.go, copying `TestCalendarDoesNotImportOthers` in internal/app/calendar/isolation_test.go. Forbid `internal/app/mail`, `internal/app/teams`, `internal/app/calendar`, `internal/app/files` and `internal/adapters`. It is a guard and may pass at scaffold.
-- [ ] T017 [P] [US1] Write RED app tests in internal/app/meetings/save_test.go:
+- [X] T016 [P] [US1] Write the isolation guard internal/app/meetings/isolation_test.go, copying `TestCalendarDoesNotImportOthers` in internal/app/calendar/isolation_test.go. Forbid `internal/app/mail`, `internal/app/teams`, `internal/app/calendar`, `internal/app/files` and `internal/adapters`. It is a guard and may pass at scaffold.
+- [X] T017 [P] [US1] Write RED app tests in internal/app/meetings/save_test.go:
   - The fake `Store` records each call in order, returns fixtures, and fails the test on any unexpected call. The fake `write` records `(path, bytes, overwrite)`.
   - The occurrence is 2030-01-15 `15:00Z`–`15:30Z`, with `JoinURL` `https://teams.example.test/l/meetup-join/abc`. The content is internal/domain/testdata/meeting.vtt (read via `../../domain/testdata/meeting.vtt`).
   - Each case asserts the class, the exact message and hint, and the exact call list:
@@ -150,7 +150,7 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
     - `write` returning usage `destination exists; pass --overwrite`: that same error comes back.
     - `Created` of `yesterday`: service `invalid transcript`.
     - An error from the store's `Transcripts` (`domain.Service("x")`) comes back unchanged, with no later calls.
-- [ ] T018 [P] [US1] Write RED Graph contract tests in internal/adapters/graph/httpmeetings_test.go. Use an `httptest.NewTLSServer` fake with `HTTPClient{Base: srv.URL, Token: "synthetic-token", Client: srv.Client()}`; it counts requests and records method, path, raw query and the `Prefer` header. Routes and fixtures follow contracts/graph-mapping.md.
+- [X] T018 [P] [US1] Write RED Graph contract tests in internal/adapters/graph/httpmeetings_test.go. Use an `httptest.NewTLSServer` fake with `HTTPClient{Base: srv.URL, Token: "synthetic-token", Client: srv.Client()}`; it counts requests and records method, path, raw query and the `Prefer` header. Routes and fixtures follow contracts/graph-mapping.md.
   - `EventMeeting("evt-online")`:
     - sends `GET /me/events/evt-online`, whose decoded query has `$select` `start,end,isOnlineMeeting,onlineMeeting`;
     - sends `Prefer` exactly `outlook.timezone="UTC"`;
@@ -163,14 +163,14 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
   - A body of exactly 10 485 760 bytes is returned whole.
   - A body of 10 485 762 bytes gives service `transcript is larger than the 10 MiB limit`.
   - No error message from these calls contains `synthetic-token`.
-- [ ] T019 [P] [US1] Write a RED link-rule test in internal/adapters/graph/meetings_link_test.go. Use the pattern of page_token_host_test.go, with new names (`meetingsRecorder`): `Base` `https://graph.microsoft.com/v1.0`, and a `RoundTripper` that records the origin of each request and answers the first request with `{"value":[],"@odata.nextLink":LINK}`. For each `LINK` in `https://graph.microsoft.com.attacker.example/v1.0/x`, `https://evilgraph.microsoft.com/v1.0/x` and `http://graph.microsoft.com/v1.0/x`:
+- [X] T019 [P] [US1] Write a RED link-rule test in internal/adapters/graph/meetings_link_test.go. Use the pattern of page_token_host_test.go, with new names (`meetingsRecorder`): `Base` `https://graph.microsoft.com/v1.0`, and a `RoundTripper` that records the origin of each request and answers the first request with `{"value":[],"@odata.nextLink":LINK}`. For each `LINK` in `https://graph.microsoft.com.attacker.example/v1.0/x`, `https://evilgraph.microsoft.com/v1.0/x` and `http://graph.microsoft.com/v1.0/x`:
   - `Transcripts` gives service `refused a transcript list link outside Microsoft Graph`;
   - the recorded origins are exactly `["https://graph.microsoft.com"]`.
-- [ ] T020 [P] [US1] Write a RED budget test in internal/adapters/graph/meetings_budget_test.go. It runs `meetings.Save` with `HTTPMeetings` against the TLS fake. The fake holds the online event, `mtg-1`, 10 pages with one in-window transcript on page 10, and the fixture content.
+- [X] T020 [P] [US1] Write a RED budget test in internal/adapters/graph/meetings_budget_test.go. It runs `meetings.Save` with `HTTPMeetings` against the TLS fake. The fake holds the online event, `mtg-1`, 10 pages with one in-window transcript on page 10, and the fixture content.
   - The save succeeds after exactly 13 requests.
   - The same with `--join-url` takes exactly 12.
   - With content of 10 485 762 bytes, it fails after 13 requests, and no 14th arrives (SC-006).
-- [ ] T021 [P] [US1] Write RED CLI tests in internal/adapters/cli/meetings_save_test.go. `Deps` holds a fake `meetings.Store`, a session with all five consents (stored as `Blob{Usable:true, Mail:true, Teams:true, Calendar:true, Files:true, Meetings:true}` through `Store.Put`), and `Write: fs.WriteFile`.
+- [X] T021 [P] [US1] Write RED CLI tests in internal/adapters/cli/meetings_save_test.go. `Deps` holds a fake `meetings.Store`, a session with all five consents (stored as `Blob{Usable:true, Mail:true, Teams:true, Calendar:true, Files:true, Meetings:true}` through `Store.Put`), and `Write: fs.WriteFile`.
   - `m365 meetings transcript --event evt-online --out DIR/m.vtt` exits 0. Stdout decodes to exactly the keys `path,id,created,ended,bytes,speakers`, with the values from T017's happy case. The file equals the fixture. Neither stdout nor stderr contains `Opening the review.`.
   - `--human` prints the same object, indented by two spaces.
   - Exit codes: both selectors exit 3, an unknown `--id` exits 6, and an existing file without `--overwrite` exits 3 with stderr JSON exactly `{"class":"usage","message":"destination exists; pass --overwrite"}`.
@@ -178,7 +178,7 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
   - With `Deps.Meetings == nil`: usage `meetings not available`.
   - `rootHelp` contains the line `  meetings  Teams meeting transcripts`.
   - Over MCP, `m365_run` with `namespace=meetings`, `verb=transcript` and flags `{"event":"evt-online","out":P}`, and no write opt-in, returns the summary JSON (no `dry_run` key), and the file exists (FR-020). Use the existing helpers `connectMCP` and `toolText` (internal/adapters/cli/mcp_test.go) and `testDeps`, as in `TestMCPRunChatAliasAndDownloadPathOnly`.
-- [ ] T022 [P] [US1] Write Gherkin features/meetings/save.feature, plus the step handlers acceptance/steps/meetings_harness.go and acceptance/steps/meetings_save_steps.go.
+- [X] T022 [P] [US1] Write Gherkin features/meetings/save.feature, plus the step handlers acceptance/steps/meetings_harness.go and acceptance/steps/meetings_save_steps.go.
   - The harness starts a TLS fake from a `meetingsFixture` struct (events, meetings by join URL, transcript pages, and content by id as `{status int; body []byte}`), so that later stories configure it without editing the harness. It wires `HTTPMeetings{HTTPClient: &graph.HTTPClient{Base: srv.URL, Token: "synthetic-token", Client: srv.Client()}}`, signs in with a fake `Login` returning all five consents, writes only under `w.T.TempDir()`, and skips mode checks on Windows.
   - Scenarios:
     - save by event: the file equals the fixture, and stdout lists both speakers;
@@ -188,12 +188,12 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
     - overwriting a `0644` file leaves it `0600`;
     - a transcript without speaker names exits 5 and no file is written.
   - Step text has no arguments (`runtime.Parse` rejects them).
-- [ ] T023 [US1] Run `go test ./internal/app/meetings/ ./internal/adapters/graph/ ./internal/adapters/cli/` and `make acceptance`. Confirm that every new failure is an assertion failure (T016 may pass), then make a RED commit with T016–T022 only.
+- [X] T023 [US1] Run `go test ./internal/app/meetings/ ./internal/adapters/graph/ ./internal/adapters/cli/` and `make acceptance`. Confirm that every new failure is an assertion failure (T016 may pass), then make a RED commit with T016–T022 only.
 
 ### Implementation for User Story 1
 
-- [ ] T024 [US1] Implement `Save` in internal/app/meetings/transcripts.go, following data-model.md "Use cases" steps 1–13 in order. Use unexported helpers `checkTarget`, `resolve` (returns the meeting id and an optional window), `inScope` (with `--event`, `occ.Start − 1h ≤ created ≤ occ.End + 1h`, inclusive), `sortNewest` (newest `Created` first, ties by `ID`) and `choose`. Parse times with `time.RFC3339Nano`; a time that does not parse is service `invalid transcript`. The use case never reads the clock. Keep the file under 250 lines.
-- [ ] T025 [US1] Implement `HTTPMeetings` in internal/adapters/graph/httpmeetings.go, per contracts/graph-mapping.md:
+- [X] T024 [US1] Implement `Save` in internal/app/meetings/transcripts.go, following data-model.md "Use cases" steps 1–13 in order. Use unexported helpers `checkTarget`, `resolve` (returns the meeting id and an optional window), `inScope` (with `--event`, `occ.Start − 1h ≤ created ≤ occ.End + 1h`, inclusive), `sortNewest` (newest `Created` first, ties by `ID`) and `choose`. Parse times with `time.RFC3339Nano`; a time that does not parse is service `invalid transcript`. The use case never reads the clock. Keep the file under 250 lines.
+- [X] T025 [US1] Implement `HTTPMeetings` in internal/adapters/graph/httpmeetings.go, per contracts/graph-mapping.md:
   - Every request goes through `c.request(ctx, http.MethodGet, url, nil, "", prefer)`. The prefer value is `outlook.timezone="UTC"` for the event read and empty otherwise.
   - A status of 400 or above reads the body and returns `MapGraphError(status, body)` for now (US4 replaces this).
   - Event times use the layout `2006-01-02T15:04:05.9999999` in UTC.
@@ -202,14 +202,14 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
   - Content is read through `io.LimitReader(res.Body, 10<<20+1)`.
   - Decode failures give service `invalid event`, `invalid meeting list` or `invalid transcript`.
   - Keep the file under 250 lines.
-- [ ] T026 [US1] Implement internal/adapters/cli/meetings.go:
+- [X] T026 [US1] Implement internal/adapters/cli/meetings.go:
   - `runMeetings(args, d, format)`: print help for no args, `help`, `--help` or `-h`. Fail with usage `meetings not available` when `d.Meetings == nil`.
   - Read the session, then dispatch the verb `transcript`. An unknown verb gives usage `unknown meetings verb "X"`.
   - `transcript` returns help when `hasHelp(args)`. Its flags are `--event`, `--join-url`, `--id`, `--out` and `--overwrite`, parsed with `parseMixed`. `d.Write` falls back to `fs.WriteFile`, and success goes through `success`.
   - Add `case "meetings": return runMeetings(rest, d, format)` in internal/adapters/cli/run.go.
-- [ ] T027 [US1] Add the `meetingsHelp` constant (exact text from contracts/command-catalog.md) and the root help namespace line `  meetings  Teams meeting transcripts` in internal/adapters/cli/help.go.
-- [ ] T028 [US1] Wire `d.Meetings = &graph.HTTPMeetings{HTTPClient: httpc}` in the live branch of cmd/m365/main.go only. The `M365_FAKE` branch leaves it nil.
-- [ ] T029 [US1] Run `go test ./...` and `make acceptance` (features/meetings/save.feature), then make a GREEN commit with T024–T028 (internal/app/meetings/, internal/adapters/graph/httpmeetings.go, internal/adapters/cli/, cmd/m365/main.go).
+- [X] T027 [US1] Add the `meetingsHelp` constant (exact text from contracts/command-catalog.md) and the root help namespace line `  meetings  Teams meeting transcripts` in internal/adapters/cli/help.go.
+- [X] T028 [US1] Wire `d.Meetings = &graph.HTTPMeetings{HTTPClient: httpc}` in the live branch of cmd/m365/main.go only. The `M365_FAKE` branch leaves it nil.
+- [X] T029 [US1] Run `go test ./...` and `make acceptance` (features/meetings/save.feature), then make a GREEN commit with T024–T028 (internal/app/meetings/, internal/adapters/graph/httpmeetings.go, internal/adapters/cli/, cmd/m365/main.go).
 
 **Checkpoint**: The save works end to end against the fake, with the caps, the link rule and the request budget enforced. Live use still needs US3's `--meetings` sign-in.
 
@@ -427,3 +427,23 @@ US4 tests:              T051 ‖ T052 ‖ T053 ‖ T054
   - `TestDeviceLoginPromptsAndReturnsSession` (internal/adapters/graph/device_test.go) uses the access token `tok`, so `fetchMe` sends a request to live `graph.microsoft.com/v1.0/me` during `go test`. The new tests avoid this by using an empty `AccessToken`.
 - This list refines plan.md's single `features/meetings/transcripts.feature` and `acceptance/steps/meetings_steps.go` into one feature and one step file per story, plus a shared harness, so that a later story never edits a locked file.
 - Baseline, the test-impact scan, approvals, gate output and the live-check outcome are recorded below as the work proceeds.
+
+### Log
+
+- **T001 (2026-11-10)**:
+  - Branch `009-meetings-transcripts` at `3a54f61` (spec `68b3d34`, plan `6b1356b`, tasks `3a54f61`), on `main@4877baf`.
+  - `git status` shows only `?? .tools`.
+  - The git identity comes from the repository config (`.git/config`): Mason Huemmer, a GitHub noreply address.
+- **T002 baseline**:
+  - `make verify` exit 0 in 31 s. govulncheck: 0 affecting. Acceptance: 66 advisory dry-check findings in 15 features, all pass. CRAP: ok (500 functions, 44 baselined).
+  - Line counts: run.go 235, help.go 165, cli/auth.go 75, app/auth/ports.go 105, oauth_loopback.go 155, fs.go 45, main.go 96.
+  - Gates that shape the code: every Go file, tests included, at most 250 lines (scripts/filesize.sh); CRAP at most 15 per function (scripts/crap.sh).
+- **T003**: The scratch change (`meetings` in `nsMap`, a root help line, `fs.WriteFile` with `O_EXCL`, `O_TRUNC` and `Chmod`) followed by `go test ./...` gave no failures. No locked test is affected, so no approval is needed. The files are restored.
+- **F1**: RED `29d6cb4`. Only `TestWriteFileOverwriteIsOwnerOnly` failed (`mode 644, want 600`); the two guards passed. GREEN in the next commit; fs, cli and files tests pass.
+- **F2**: SCAFFOLD `3adff06`, RED `809a30c` (all failures were assertions; `TestOlderBlobHasNoMeetingsConsent` passed as a guard), then GREEN. domain, auth and cli tests pass.
+- **US1**:
+  - SCAFFOLD `a0c4776`. RED `fb0ff19`: every failure was an assertion or the expected unknown namespace. The isolation guard passed. One extra test from the plan's performance contract, `TestTranscriptContentReadsAtMostOneByteOverTheCap` (read count at most 10 MiB + 1), was added before the RED commit.
+  - Approved edit: gosec G302 flagged the deliberate `0o644` in the locked step at acceptance/steps/meetings_save_steps.go:54. **Mason approved on 2026-11-10** a comment-only `#nosec G302` with a reason, committed alone as `21a2fa3`.
+  - GREEN `e0325e0`. The CRAP ratchet flagged `Run` (internal/adapters/cli/run.go) rising from 21.6 to 22.6 because of the new `case`. Per the baseline's rule ("fix a function when you change it"), GREEN routes workload namespaces through `namespaceRunners()`, built per call to avoid an initialization cycle through `runMCP`. `Run` is now under its baselined score.
+  - `make verify` exit 0: gosec 0 issues, govulncheck 0 affecting, crap ok (525 functions, 44 baselined). run.go 238 lines, help.go 180.
+
