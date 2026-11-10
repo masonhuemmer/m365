@@ -314,8 +314,8 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
 
 ### Scaffold and tests for User Story 4 (MANDATORY)
 
-- [ ] T050 [US4] SCAFFOLD, then a SCAFFOLD commit: `func mapMeetingsError(status int, body []byte) error` in internal/adapters/graph/meetingserrors.go, returning `MapGraphError(status, body)`.
-- [ ] T051 [P] [US4] Write RED table tests in internal/adapters/graph/meetingserrors_test.go for `mapMeetingsError`, asserting the class, exact message and exact hint:
+- [X] T050 [US4] SCAFFOLD, then a SCAFFOLD commit: `func mapMeetingsError(status int, body []byte) error` in internal/adapters/graph/meetingserrors.go, returning `MapGraphError(status, body)`.
+- [X] T051 [P] [US4] Write RED table tests in internal/adapters/graph/meetingserrors_test.go for `mapMeetingsError`, asserting the class, exact message and exact hint:
   - 403 with `{"error":{"code":"Forbidden","message":"tenant detail","innerError":{"code":"GraphAccessToTranscriptsDisabled"}}}` gives auth `GraphAccessToTranscriptsDisabled: Graph access to meeting transcripts is turned off for this tenant`, hint `a Teams administrator controls this setting`.
   - The same with the key `innererror` gives the same result.
   - 403 with inner `SpeakerAttributionNotAllowed` gives auth `SpeakerAttributionNotAllowed: speaker attribution is turned off for this tenant`, with the same hint.
@@ -325,28 +325,28 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
   - 404 gives not_found `not found`.
   - 500 gives service `microsoft 365 service error`.
   - No message contains `tenant detail`.
-- [ ] T052 [P] [US4] Write RED adapter tests in internal/adapters/graph/meetings_refusal_test.go against the TLS fake:
+- [X] T052 [P] [US4] Write RED adapter tests in internal/adapters/graph/meetings_refusal_test.go against the TLS fake:
   - A list that returns 403 `GraphAccessToTranscriptsDisabled` gives that auth error, and no further request is made.
   - Content that returns 403 `SpeakerAttributionNotAllowed` gives that auth error after exactly one content request; there is no retry and no other format (FR-008).
   - An event read that returns 403 with inner `Other` gives the coded message.
-- [ ] T053 [P] [US4] Write RED CLI tests in internal/adapters/cli/meetings_refusal_test.go, using `HTTPMeetings` against a TLS fake in the test:
+- [X] T053 [P] [US4] Write RED CLI tests in internal/adapters/cli/meetings_refusal_test.go, using `HTTPMeetings` against a TLS fake in the test:
   - `meetings transcript --event evt-online --out P` with a content 403 `SpeakerAttributionNotAllowed` exits 4. Stderr is exactly `{"class":"auth","message":"SpeakerAttributionNotAllowed: speaker attribution is turned off for this tenant","hint":"a Teams administrator controls this setting"}`. `P` does not exist.
   - `meetings transcripts` with a list 403 `GraphAccessToTranscriptsDisabled` exits 4 with that message.
-- [ ] T054 [P] [US4] Write Gherkin features/meetings/refusals.feature and acceptance/steps/meetings_refusal_steps.go, using the US1 harness's fixture struct. Scenarios:
+- [X] T054 [P] [US4] Write Gherkin features/meetings/refusals.feature and acceptance/steps/meetings_refusal_steps.go, using the US1 harness's fixture struct. Scenarios:
   - Graph access off: the list exits 4 and stderr names the code;
   - speaker attribution off: the save exits 4, stderr names the code, and no file is written.
-- [ ] T055 [US4] Run `go test ./internal/adapters/graph/ ./internal/adapters/cli/` and `make acceptance`, confirm the assertion failures, then make a RED commit with T051–T054 (the refusal tests and features/meetings/refusals.feature).
+- [X] T055 [US4] Run `go test ./internal/adapters/graph/ ./internal/adapters/cli/` and `make acceptance`, confirm the assertion failures, then make a RED commit with T051–T054 (the refusal tests and features/meetings/refusals.feature).
 
 ### Implementation for User Story 4
 
-- [ ] T056 [US4] Implement `mapMeetingsError` in internal/adapters/graph/meetingserrors.go per research R5:
+- [X] T056 [US4] Implement `mapMeetingsError` in internal/adapters/graph/meetingserrors.go per research R5:
   - Decode `error.code` and `error.innerError.code`.
   - The two tenant codes give `&domain.Error{Class: auth, Message, Hint}`.
   - Any other 401 or 403 gives the coded auth message, listing only the parts present.
   - Everything else goes to `MapGraphError`.
   - Graph's `message` is never used.
-- [ ] T057 [US4] In internal/adapters/graph/httpmeetings.go, replace the four `MapGraphError(status, body)` calls with `mapMeetingsError(status, body)`. The shared mapper is not touched.
-- [ ] T058 [US4] Run `go test ./...` and `make acceptance`, then make a GREEN commit with T056–T057 (internal/adapters/graph/meetingserrors.go, internal/adapters/graph/httpmeetings.go).
+- [X] T057 [US4] In internal/adapters/graph/httpmeetings.go, replace the four `MapGraphError(status, body)` calls with `mapMeetingsError(status, body)`. The shared mapper is not touched.
+- [X] T058 [US4] Run `go test ./...` and `make acceptance`, then make a GREEN commit with T056–T057 (internal/adapters/graph/meetingserrors.go, internal/adapters/graph/httpmeetings.go).
 
 **Checkpoint**: Every refusal in the command catalog names its cause.
 
@@ -452,4 +452,8 @@ US4 tests:              T051 ‖ T052 ‖ T053 ‖ T054
   - GREEN `8b71262`. `make verify` exit 0, crap ok (529 functions).
   - Deviation, recorded: the scaffold passes `cfg.Scopes` through `LoginPKCE` (internal/adapters/graph/oauth_loopback.go), a baselined CRAP function (156; complexity 12, no coverage). Its score is unchanged and the gate passes. Its waiver says to fix a function when you change it, but covering `LoginPKCE` needs `fetchMe` injected so the test doesn't call live Graph. That is out of scope here; Mason decides.
   - MVP (US1 + US3) is complete. Live check T062 is unblocked.
+- **US4**:
+  - SCAFFOLD `676789c`. RED `adec3d9`: every failure was an assertion (the generic message instead of the code). GREEN in the next commit. `make verify` exit 0, crap ok (531 functions).
+  - T057 needed one replacement, not four: every adapter request goes through `HTTPMeetings.get`.
+  - The refusal steps use the prefix `a meetings tenant with`. Note: the US3 consent step `a meetings fake without meetings consent` starts with the US1 prefix `a meetings fake`. It resolves correctly only because `meetings_consent_steps.go` sorts, and so registers, before `meetings_save_steps.go`. Both files are locked, so this is recorded rather than changed.
 
