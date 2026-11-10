@@ -189,7 +189,7 @@ m365 calendar create --when 'tomorrow at 1:30 pm' --subject 'Sync' --dry-run
 m365 files list --human
 ```
 
-Saving over an existing file with `--overwrite` leaves the file readable by you only (mode 0600).
+Saving over an existing file with `--overwrite` leaves the file readable by you only (mode 0600). If the destination is a link, a pipe or a device, m365 refuses it.
 
 ### Meeting transcripts
 

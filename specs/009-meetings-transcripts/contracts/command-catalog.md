@@ -76,8 +76,9 @@ Checked in this order. The first failure ends the command.
 | 21 | Content has no speaker names (`transcript`) | service | `transcript has no speaker names` |
 | 22 | The file exists and there is no `--overwrite` (`transcript`) | usage | `destination exists; pass --overwrite` |
 | 23 | The path can't be written (`transcript`) | usage | `unwritable path: FILE` |
+| 24 | With `--overwrite`, the destination exists and is not a regular file (`transcript`) | usage | `destination is not a regular file: FILE` |
 
-- In rows 10 to 23, no file is written. Rows 1 to 6 make no request.
+- In rows 10 to 24, no file is written. Rows 1 to 6 make no request.
 - Errors pass the existing `redact`. Messages hold Graph codes, never Graph's free-text messages.
 
 ## Help text: `meetingsHelp`

@@ -1,6 +1,6 @@
 # Graph mapping and fake server: meetings
 
-Only `internal/adapters/graph` knows these paths and shapes. Every request goes through the existing `HTTPClient.request`. That means the existing bearer and refresh handling, one retry after a forced refresh on 401, and no new headers except `Prefer` on the event read.
+Only `internal/adapters/graph` knows these paths and shapes. Every request goes through the existing `HTTPClient.request`. That means the existing bearer and refresh handling, one retry after a forced refresh on 401, and no new headers except `Prefer` on the event read. The request budget (SC-006) counts logical requests, so that one retry is not counted.
 
 ## Requests
 

@@ -50,11 +50,11 @@ Reading transcripts needs a permission that only a tenant administrator can gran
 
 **Why this priority**: Asking for an administrator-only permission at every sign-in would lock users out of mail, Teams, calendar and files in tenants without that grant.
 
-**Independent Test**: With a synthetic sign-in, a plain login requests today's permissions and reports `meetings: false`. A `--meetings` login requests the two additional permissions and reports `meetings: true`. Meetings commands without meetings consent fail with an authentication error whose hint names `m365 auth login --meetings`.
+**Independent Test**: With a synthetic sign-in, a plain login that is granted only today's permissions requests today's permissions and reports `meetings: false`. A `--meetings` login requests the two additional permissions and reports `meetings: true`. Meetings commands without meetings consent fail with an authentication error whose hint names `m365 auth login --meetings`.
 
 **Acceptance Scenarios**:
 
-1. **Given** a plain sign-in, **When** the user checks `auth status`, **Then** meetings consent is reported as false, and the requested permissions are unchanged from before this feature.
+1. **Given** a plain sign-in, **When** the user checks `auth status`, **Then** the requested permissions are unchanged from before this feature, and meetings consent is reported as true only if the granted permissions already include both meetings permissions (for example, after an earlier `--meetings` consent).
 2. **Given** a sign-in with `--meetings` that grants both permissions, **When** the user checks `auth status`, **Then** meetings consent is reported as true.
 3. **Given** a sign-in with `--meetings` whose response does not list the granted permissions, **When** the user checks `auth status`, **Then** meetings consent is reported as true, because the requested permissions count as granted.
 4. **Given** `--meetings` together with `--device-code`, **When** the user signs in, **Then** the device-code flow requests the meetings permissions as well.
@@ -94,6 +94,8 @@ When the tenant blocks transcript access, or the transcript has no speaker names
 - More than 10 pages of transcripts: a service error naming the cap; nothing is silently dropped.
 - A continuation link that is not `https`, or not on the service's own host: a service error, and that link is never requested.
 - Transcript content over 10 MiB: a service error, and nothing is written.
+- With `--overwrite`, an existing destination that is a symbolic link, a pipe or a device: a usage error, and nothing changes.
+- A voice tag outside cue text (in the header or a `NOTE`, `STYLE` or `REGION` block, or in a cue id) is not a speaker name.
 - Content that is not WebVTT: a service error, and nothing is written.
 - Real-world WebVTT with cue identifiers, multi-line cues, or lines without a speaker next to named lines: saved unchanged; speakers are read from the named lines.
 - `--help` on either verb shows that verb's help, never an argument error.
@@ -110,20 +112,20 @@ When the tenant blocks transcript access, or the transcript has no speaker names
 - **FR-006**: `transcripts` MUST output a count and items (id, start, end), newest first, in JSON by default and with `--human`.
 - **FR-007**: `transcript` MUST save the single in-scope transcript, or the one named by `--id`. With none in scope it MUST report not found. With several in scope and no `--id`, it MUST fail with a usage error that hints `meetings transcripts` and `--id`.
 - **FR-008**: `transcript` MUST request the attributed (speaker-named) WebVTT form, and MUST NOT fall back to a form without names.
-- **FR-009**: `transcript` MUST save the content byte for byte. `--out` is required. Without `--overwrite`, the file MUST be created exclusively, so an existing path is refused. With `--overwrite`, the saved file MUST be owner-only, even when the previous file was not.
+- **FR-009**: `transcript` MUST save the content byte for byte. `--out` is required. Without `--overwrite`, the file MUST be created exclusively, so an existing path is refused. With `--overwrite`, the saved file MUST be owner-only, even when the previous file was not; an existing destination that is not a regular file MUST be refused and left unchanged; and the old content MUST survive a failure to make the file owner-only.
 - **FR-010**: `transcript` MUST output path, id, start, end, size in bytes, and the distinct speaker names in order of first appearance. It MUST NOT output any transcript text.
 - **FR-011**: Content MUST start with the WebVTT header (a byte-order mark is allowed) and MUST carry at least one speaker name. Otherwise m365 MUST fail with a service error and write nothing.
 - **FR-012**: m365 MUST read at most 10 MiB of content, and at most 10 pages of the transcript list. Exceeding either MUST fail with a service error naming the limit.
 - **FR-013**: m365 MUST follow a continuation link only when it is `https` and on the service's own host. Any other link MUST fail with a service error and MUST NOT be requested.
 - **FR-014**: `m365 auth login --meetings` MUST request the two meetings permissions in addition to today's permissions, MUST combine with `--device-code`, and MUST record meetings consent. A plain `m365 auth login` MUST request exactly today's permissions.
-- **FR-015**: Meetings consent MUST be true when the sign-in grants both meetings permissions, or when the sign-in response omits the granted list after a `--meetings` request. `auth status` MUST report meetings consent alongside the existing namespaces.
+- **FR-015**: Meetings consent MUST be true when the sign-in grants both meetings permissions, or when the sign-in response omits the granted list after a `--meetings` request. A plain sign-in records meetings consent only when the granted permissions include both. `auth status` MUST report meetings consent alongside the existing namespaces.
 - **FR-016**: Both verbs MUST require meetings consent. `--event` MUST also require calendar consent. A missing consent MUST fail with the authentication class, and the meetings hint MUST name `m365 auth login --meetings`.
 - **FR-017**: A refusal naming `GraphAccessToTranscriptsDisabled` or `SpeakerAttributionNotAllowed` MUST fail with the authentication class, name the code, and say a Teams administrator controls the setting. Any other authentication or permission refusal on a meetings call MUST include the service's error code and inner code when present.
 - **FR-018**: Error classes and exit codes MUST be the existing ones: usage 3, authentication 4, service 5, not found 6.
 - **FR-019**: Tokens MUST NOT appear in any output, error, file or child process. Error messages MUST pass the existing redaction.
 - **FR-020**: Both verbs MUST be available to agents through the existing MCP run tool as reads, not writes.
 - **FR-021**: Root help, `meetings` help, each verb's `--help`, `auth` help, the README and `docs/m365.md` MUST describe the verbs, the `--meetings` sign-in, the in-scope rule, the limits and the error codes.
-- **FR-022**: Other namespaces' behaviour and error messages MUST be unchanged. The one exception is the shared file save, which becomes owner-only on overwrite (FR-009) for `files download` too.
+- **FR-022**: Other namespaces' behaviour and error messages MUST be unchanged. The one exception is the shared file save, which for `files download` too becomes owner-only on overwrite and refuses an existing destination that is not a regular file (FR-009).
 
 ### Key Entities
 
@@ -141,7 +143,7 @@ When the tenant blocks transcript access, or the transcript has no speaker names
 - **SC-003**: In every test, no transcript text appears on stdout or stderr, and no token appears in any output, error or file.
 - **SC-004**: Each refusal in User Story 4 names its cause, and in 100% of those cases no file is written.
 - **SC-005**: A plain sign-in requests exactly the same permissions as before this feature.
-- **SC-006**: A command makes at most 13 requests to the service (1 event, 1 lookup, up to 10 list pages, 1 content), reads at most 10 MiB of content, and makes no further requests after a failure.
+- **SC-006**: A command makes at most 13 requests to the service (1 event, 1 lookup, up to 10 list pages, 1 content), reads at most 10 MiB of content, and makes no further requests after a failure. The count is of logical requests: the shared transport may repeat one request once after refreshing an expired token.
 - **SC-007**: A live check, after `m365 auth login --meetings`, saves the transcript of a real meeting the user was invited to, to a path outside the repository, and reports its speaker names.
 
 ## Assumptions

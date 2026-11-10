@@ -371,7 +371,7 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
   - the final `wc -l` of every file touched.
 
   Any file over 250 lines needs a note under "### File-size notes" in specs/001-m365-cli/plan.md. Any file over 500 lines must be split first.
-- [ ] T061 Review the branch diff against `main` and save the reports in ~/.work/m365/2026-11-10-teams-meeting-transcripts/reviews/:
+- [X] T061 Review the branch diff against `main` and save the reports in ~/.work/m365/2026-11-10-teams-meeting-transcripts/reviews/:
   - run `/code-review` against `main` (Standards and Spec);
   - run an independent Codex adversarial review of the branch diff through the `codex:codex-rescue` agent;
   - save both reports in `~/.work/m365/2026-11-10-teams-meeting-transcripts/reviews/`;
@@ -463,4 +463,21 @@ US4 tests:              T051 ‖ T052 ‖ T053 ‖ T054
   - `go test -race` on meetings, graph and cli: ok.
   - Largest touched Go files: run.go 240, transcripts.go 189, help.go 181, oauth_loopback.go 165, httpmeetings.go 159. None is over 250, so no file-size note is needed.
 - **T063**: every row of the quickstart "Automated validation" table passes (each run with `-count=1`). `TestVoiceNamesFromFixture` gives `[Avery Example, Blake Sample]`.
+- **T061 review (2026-11-10)**:
+  - Reports saved in `~/.work/m365/2026-11-10-teams-meeting-transcripts/reviews/`: `impl-codex.md` (8 confirmed, 2 conditional), `impl-standards.md` and `impl-spec.md`.
+  - Fixes, each SCAFFOLD (where needed), then locked RED, then GREEN:
+    - shared save, refusing non-regular destinations and running chmod before truncate: scaffold `cd26025`, RED `cea2cb1`, GREEN `a9cd753`;
+    - one redacted JSON line for flag errors, and verb help before the adapter check: RED `efa43cf`, GREEN `7118e44`;
+    - speaker names read from cue text only: RED `5f348c1`, GREEN `000f327`;
+    - transcript id and end-time validation: RED `abdf354`, GREEN `748839f`.
+  - Guards (passing from the start): the check order and catalog row 15, `c81f46c`. Swapping the first two checks fails the order guard.
+  - Mason's decisions, 2026-11-10, all as recommended:
+    1. The meetings flag follows the granted scopes; US3-1 and the docs are corrected.
+    2. SC-006 counts logical requests; the shared transport's one retry after a token refresh is not counted, and its uncapped 401 drain is a follow-up outside this branch.
+    3. Exception EX-009-01 for `LoginPKCE`, recorded in plan.md Complexity Tracking.
+    4. The non-regular-destination refusal applies to `files download` too; FR-009 and FR-022 are widened.
+  - Not changed, recorded instead:
+    - redirects may keep the bearer token for subdomains; this predates the branch, applies to every namespace, and Codex found no evidence Graph sends such redirects;
+    - `main.go` passes `MeetingsScopes` to both logins without a unit test, which the live check covers for the browser path;
+    - the remaining review smells are judgement calls on names, data clumps and the `d.Write` fallback.
 

@@ -62,6 +62,7 @@ Phase 0 for [plan.md](plan.md). The Graph facts come from the task research outs
 ## R6. How to find the speaker names
 
 - **Decision**: `domain.VoiceNames(vtt []byte) []string` finds every WebVTT voice span opening tag, `<v` plus optional `.class` parts, then whitespace, then the annotation, then `>`. It trims each name and drops empty ones. It returns the distinct names in order of first appearance.
+  - Only cue text is read: the header block, `NOTE`, `STYLE` and `REGION` blocks, and each cue's id and timing lines are skipped. A voice tag in a comment must not count as attribution (implementation review, Codex finding 5).
   - `domain.IsWebVTT(b)` accepts an optional UTF-8 BOM, then `WEBVTT`, followed by the end of input, a space, a tab, `\r` or `\n`.
 - **Rationale**:
   - Teams writes `<v Name>text</v>`.
@@ -119,6 +120,7 @@ Phase 0 for [plan.md](plan.md). The Graph facts come from the task research outs
   - `os.WriteFile` keeps an existing file's mode, so a 0644 file stays 0644 after an overwrite. The explicit `Chmod` fixes that.
   - The messages stay the same, so `files download` keeps its error contract.
 - **Alternatives considered**: Write to a temp file and rename it. Rejected: it changes the inode, the directory permission needs, and Windows rename semantics, for no requirement.
+- **Implementation review (2026-11-10, approved)**: with `overwrite`, an existing destination that `Lstat` shows is not a regular file (a symlink, FIFO or device such as `/dev/stdout`) is refused before any change. The file is opened without `O_TRUNC` and truncated only after `Chmod(0o600)` succeeds, so a failed overwrite keeps the old content. A swap between `Lstat` and `OpenFile` remains possible; it would need someone else with write access to the destination's directory.
 - **Windows**: `O_EXCL` works there, but `Chmod` only toggles read-only, so the mode assertion runs only on Unix.
 
 ## R10. The acceptance harness

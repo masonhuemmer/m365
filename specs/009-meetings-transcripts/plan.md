@@ -100,7 +100,11 @@ Add a `meetings` namespace with two read verbs. `meetings transcripts` lists a m
   - **Pre-existing gap:** `make acceptance-mutation` (`scripts/acceptance-mutation.sh`) runs the acceptance runner and prints `test_success`, but never runs a mutator. This feature runs the target, but does not fix it. Mason decides whether that becomes its own task.
 - [x] **Development Workflow. PASS.** Specify (done) → this check → SCAFFOLD/RED/GREEN per slice → `make verify` → review → live check.
 
-No new constitution exceptions.
+One exception, EX-009-01 (see [Complexity Tracking](#complexity-tracking)).
+
+**Implementation notes (2026-11-10):**
+- The CRAP ratchet stopped `Run` (internal/adapters/cli/run.go) from rising when the `meetings` case was added. So GREEN `e0325e0`, not a separate REFACTOR commit, routes workload namespaces through `namespaceRunners()`.
+- The shared transport drains a 401 body with no cap before its single retry. That is a pre-existing gap in `HTTPClient.request`, which this feature doesn't change. It is a follow-up for every namespace.
 
 **Post-design re-check (after Phase 1): PASS.**
 - The contracts keep the error schema and add `meetings` to `auth status`.
@@ -173,7 +177,7 @@ The metrics are measured with the TLS fake server, which counts requests and byt
 
 | Metric | Threshold | Measured by |
 |---|---|---|
-| Graph requests per command | at most 13 with `--event` (1 + 1 + 10 + 1), at most 12 with `--join-url` | the fake serves exactly 10 pages and one content body; the test asserts the count |
+| Graph requests per command | at most 13 logical requests with `--event` (1 + 1 + 10 + 1), at most 12 with `--join-url`; the shared transport may repeat one request once after a token refresh (approved 2026-11-10) | the fake serves exactly 10 pages and one content body; the test asserts the count |
 | Requests after a failure | 0 | each refusal test asserts that no further request arrives after the failing one |
 | Content bytes read | at most 10 MiB + 1 | the fake serves 10 MiB + 2 bytes; the adapter refuses, and the fake records bytes written to the connection |
 | List pages | at most 10; an 11th link fails before it is requested | the fake serves 11 pages; the request count is 10 list requests |
@@ -216,4 +220,6 @@ A breach of any threshold is a defect and blocks completion. Latency and binary 
 
 ## Complexity Tracking
 
-No new constitution exceptions.
+| Exception | Principle | Rationale | Scope | Retirement |
+|---|---|---|---|---|
+| EX-009-01, approved by Mason 2026-11-10 | Engineering Constraints: the CRAP waiver EX-EC-001 says "fix a function when you change it" | `LoginPKCE` (internal/adapters/graph/oauth_loopback.go, baselined at 156, no coverage) gained a one-argument pass-through of the requested scopes. Its score is unchanged. Covering it needs the `/me` lookup injected so a test doesn't call live Graph. | `LoginPKCE` only, for spec 009 | A separate task injects the `/me` lookup, adds `LoginPKCE` coverage, and removes its baseline entry |

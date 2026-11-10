@@ -33,7 +33,7 @@ The summary has no field for transcript text.
 ### WebVTT rules (`webvtt.go`), pure functions
 
 - `IsWebVTT(b []byte) bool`: an optional UTF-8 BOM (`EF BB BF`), then `WEBVTT`, then the end of input or one of space, tab, `\r`, `\n`.
-- `VoiceNames(b []byte) []string`: every voice span opening tag `<v(\.[^\s>]+)*\s+([^>]+)>`. Each name is trimmed, empty names are dropped, and the distinct names are returned in order of first appearance.
+- `VoiceNames(b []byte) []string`: every voice span opening tag `<v(\.[^\s>]+)*\s+([^>]+)>` in cue text. Blocks are split at blank lines. The header block, `NOTE`, `STYLE` and `REGION` blocks, and a cue's id and timing lines are skipped. Each name is trimmed, empty names are dropped, and the distinct names are returned in order of first appearance.
 
 ### Session (`session.go`)
 
