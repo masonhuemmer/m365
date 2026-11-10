@@ -54,8 +54,16 @@ func WriteFile(path string, data []byte, overwrite bool) error {
 	return nil
 }
 
+// ownedFile is the part of *os.File that writeOwnerOnly uses.
+type ownedFile interface {
+	Chmod(os.FileMode) error
+	Truncate(int64) error
+	Write([]byte) (int, error)
+	Close() error
+}
+
 // writeOwnerOnly makes an overwritten file 0600 too: OpenFile keeps an existing file's mode.
-func writeOwnerOnly(f *os.File, data []byte) error {
+func writeOwnerOnly(f ownedFile, data []byte) error {
 	err := f.Chmod(0o600)
 	if err == nil {
 		_, err = f.Write(data)
