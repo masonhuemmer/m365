@@ -2,6 +2,7 @@ package cli
 
 import (
 	"flag"
+	"io"
 
 	"github.com/masonhuemmer/m365/internal/adapters/fs"
 	"github.com/masonhuemmer/m365/internal/app/meetings"
@@ -12,12 +13,12 @@ func runMeetings(args []string, d Deps, format string) int {
 	if len(args) == 0 || args[0] == "help" || args[0] == "--help" || args[0] == "-h" {
 		return writeHelp(d.Stdout, meetingsHelp)
 	}
-	if d.Meetings == nil {
-		return fail(d, domain.Usage("meetings not available"))
-	}
 	verb, args := args[0], args[1:]
 	if hasHelp(args) {
 		return writeHelp(d.Stdout, meetingsHelp)
+	}
+	if d.Meetings == nil {
+		return fail(d, domain.Usage("meetings not available"))
 	}
 	sess, err := session(d)
 	if err != nil {
@@ -34,7 +35,7 @@ func runMeetings(args []string, d Deps, format string) int {
 }
 
 func meetingsList(args []string, d Deps, sess domain.Session, format string) int {
-	t, err := meetingsTarget("meetings transcripts", args, d, false)
+	t, err := meetingsTarget("meetings transcripts", args, false)
 	if err != nil {
 		return fail(d, err)
 	}
@@ -46,7 +47,7 @@ func meetingsList(args []string, d Deps, sess domain.Session, format string) int
 }
 
 func meetingsSave(args []string, d Deps, sess domain.Session, format string) int {
-	t, err := meetingsTarget("meetings transcript", args, d, true)
+	t, err := meetingsTarget("meetings transcript", args, true)
 	if err != nil {
 		return fail(d, err)
 	}
@@ -62,10 +63,10 @@ func meetingsSave(args []string, d Deps, sess domain.Session, format string) int
 }
 
 // meetingsTarget parses --event and --join-url, plus the save flags when save is set.
-func meetingsTarget(name string, args []string, d Deps, save bool) (meetings.Target, error) {
+func meetingsTarget(name string, args []string, save bool) (meetings.Target, error) {
 	var t meetings.Target
 	fsset := flag.NewFlagSet(name, flag.ContinueOnError)
-	fsset.SetOutput(d.Stderr)
+	fsset.SetOutput(io.Discard) // the error is reported once, redacted, by fail
 	fsset.StringVar(&t.EventID, "event", "", "")
 	fsset.StringVar(&t.JoinURL, "join-url", "", "")
 	if save {
