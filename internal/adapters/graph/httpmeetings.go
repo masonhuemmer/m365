@@ -153,7 +153,7 @@ func (c *HTTPMeetings) get(ctx context.Context, path, prefer string) ([]byte, er
 		return nil, domain.Service("microsoft 365 service error")
 	}
 	if res.StatusCode >= 400 {
-		return nil, MapGraphError(res.StatusCode, b)
+		return nil, mapMeetingsError(res.StatusCode, b)
 	}
 	return b, nil
 }
