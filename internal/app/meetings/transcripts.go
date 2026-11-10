@@ -112,12 +112,21 @@ func parseTimes(raw []domain.Transcript) ([]timedTranscript, error) {
 	items := make([]timedTranscript, 0, len(raw))
 	for _, it := range raw {
 		created, err := time.Parse(time.RFC3339Nano, it.Created)
-		if err != nil {
+		if err != nil || it.ID == "" || !validEnd(it.Ended) {
 			return nil, domain.Service("invalid transcript")
 		}
 		items = append(items, timedTranscript{Transcript: it, created: created})
 	}
 	return items, nil
+}
+
+// validEnd accepts an RFC 3339 end time, or none while transcription runs.
+func validEnd(s string) bool {
+	if s == "" {
+		return true
+	}
+	_, err := time.Parse(time.RFC3339Nano, s)
+	return err == nil
 }
 
 func sortNewest(items []timedTranscript) {
