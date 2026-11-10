@@ -8,6 +8,7 @@ type Session struct {
 	TeamsConsented    bool
 	CalendarConsented bool
 	FilesConsented    bool
+	MeetingsConsented bool
 }
 
 func SignedOut() Session {

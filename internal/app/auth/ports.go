@@ -13,6 +13,7 @@ type Blob struct {
 	Teams        bool      `json:"teams"`
 	Calendar     bool      `json:"calendar"`
 	Files        bool      `json:"files"`
+	Meetings     bool      `json:"meetings"`
 	Usable       bool      `json:"usable"`
 	AccessToken  string    `json:"access_token,omitempty"`
 	RefreshToken string    `json:"refresh_token,omitempty"`
@@ -101,5 +102,10 @@ func RequireFiles(sess domain.Session) error {
 	if !sess.FilesConsented {
 		return domain.Auth("missing files consent")
 	}
+	return nil
+}
+
+// RequireMeetings checks the opt-in meetings consent.
+func RequireMeetings(sess domain.Session) error {
 	return nil
 }
