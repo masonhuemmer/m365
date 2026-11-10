@@ -51,7 +51,7 @@ func destinationFile(w *runtime.World, text string) error {
 		return err
 	}
 	if strings.HasSuffix(text, "readable by others") {
-		return os.Chmod(r.dest, 0o644)
+		return os.Chmod(r.dest, 0o644) // #nosec G302 -- the scenario needs a world-readable file to prove overwrite makes it owner-only
 	}
 	return nil
 }
