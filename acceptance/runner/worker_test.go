@@ -114,7 +114,9 @@ func irFile(t *testing.T, body string) string {
 	}
 	rel, err := filepath.Rel(wd, p)
 	if err != nil {
-		t.Fatal(err)
+		// Windows: the temp dir can be on another volume, where no
+		// relative path exists.
+		return p
 	}
 	return rel
 }
