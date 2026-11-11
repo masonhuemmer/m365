@@ -28,3 +28,9 @@ MCP: flags attach=[/path/report.pdf]. Paths are local to the machine running m36
 Copy recipients with --cc (mail send) and --bcc (mail send and mail reply), both repeatable. A send needs --to and/or --bcc. Bcc recipients are hidden from everyone else, so confirm the "to", "cc" and "bcc" lists in the dry-run before the real send. With --exact-recipients every --to, --cc and --bcc must be an email address.
 
 Happy-path examples stay dry-run (write_opt_in false). MCP writes dry-run unless write_opt_in is true.
+
+## Saved recipients
+
+For Sesami R&D, NOC, or R&D + NOC mail, read `~/.config/m365/recipient-groups.json`.
+Use `rd`, `noc`, or `rd-noc`; expand `include` groups into their `emails` and deduplicate addresses case-insensitively.
+These are Mason's dated recipient lists, not live distribution-list membership. Pass the expanded addresses as repeated `--to` or `--cc` flags according to the request; the names are skill lookup keys, not native CLI aliases. Add other CC recipients only when requested.
