@@ -47,9 +47,20 @@ go test ./acceptance/generated
 
 ## Mutation
 
-`scripts/acceptance-mutation.sh` runs `gherkin-mutator` with
-`acceptance/runner`. Classify `test_success`, `test_failure`,
-`infrastructure_error`. Reports under `build/acceptance-mutation/`.
-Hardening workflow: before release and after acceptance-contract changes.
+`make acceptance-mutation` (`scripts/acceptance-mutation.sh`) runs
+`gherkin-mutator` at level `full` on a copy of every feature with an
+Examples table, so `features/` never changes. The generator also writes APS
+metadata to `build/acceptance/metadata/`. The persistent worker
+`acceptance/runner` runs the feature's generated test from a binary
+compiled once, with `M365_ACCEPTANCE_IR` naming the mutated IR, and
+classifies `test_success`, `test_failure`, `infrastructure_error` (a run
+that selects no test, times out or cannot start). A surviving mutation, an
+error, or no feature to mutate fails the target. Reports under
+`build/acceptance-mutation/`. Hardening workflow: before release and after
+acceptance-contract changes; not part of `make verify`.
+
+Generated tests load the parser IR, not the `.feature` text: one execution
+per example row (`example_<n>`), Background first, `<name>` placeholders
+filled from the row.
 
 Pin APS tooling to a reviewed upstream commit SHA (no release tags).
