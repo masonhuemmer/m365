@@ -124,8 +124,11 @@ func meetingsGranted(scope string, requested []string) bool {
 // test never calls live Graph.
 var lookupAccount = fetchMe
 
+// meURL is the Graph endpoint fetchMe reads; tests point it at a synthetic server.
+var meURL = "https://graph.microsoft.com/v1.0/me"
+
 func fetchMe(ctx context.Context, token string) string {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://graph.microsoft.com/v1.0/me", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, meURL, nil)
 	if err != nil {
 		return ""
 	}
