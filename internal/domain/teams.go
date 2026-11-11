@@ -6,6 +6,8 @@ type Chat struct {
 	Type        string   `json:"type,omitempty"`
 	Members     []Person `json:"members,omitempty"`
 	LastMessage string   `json:"last_message,omitempty"`
+	// Hidden is set when the signed-in user has hidden the chat; teams list skips those by default.
+	Hidden bool `json:"hidden,omitempty"`
 }
 
 type ChatMessage struct {

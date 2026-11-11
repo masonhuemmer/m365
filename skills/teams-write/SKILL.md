@@ -36,7 +36,7 @@ Group chats: teams create --name NAME --member EMAIL_OR_ID (repeat, at least 2) 
   teams create --name 'NOC Weekly' --member ajay@example.com --member jarrett@example.com --dry-run
   teams rename CHAT_ID --name 'NOC Daily' --dry-run
 
-Hide a chat: teams hide CHAT_ID removes it from your own list only (teams unhide undoes it). Nothing is deleted, other members still see it, and a new message in the chat shows it again; non-admins cannot delete chats. Dry-run shows the chat name and type. MCP: write_opt_in is required and --allow takes teams.hide and teams.unhide.
+Hide a chat: teams hide CHAT_ID removes it from your own list only (teams unhide undoes it). Nothing is deleted, other members still see it, and a new message in the chat shows it again; teams list skips hidden chats unless --include-hidden (then they carry hidden: true), which is how to find the id to unhide; non-admins cannot delete chats. Dry-run shows the chat name and type. MCP: write_opt_in is required and --allow takes teams.hide and teams.unhide.
 
   teams hide CHAT_ID --dry-run
 

@@ -88,7 +88,7 @@ func TestListMappedRemembers(t *testing.T) {
 	st := &chatMem{chats: sampleChats()}
 	m := &memMap{}
 	sess := domain.Session{SignedIn: true, SessionUsable: true, TeamsConsented: true, Account: "user@example.com"}
-	if _, err := ListMapped(context.Background(), st, m, sess, 50, ""); err != nil {
+	if _, err := ListMapped(context.Background(), st, m, sess, 50, "", false); err != nil {
 		t.Fatal(err)
 	}
 	id, ok, err := m.Lookup("user@example.com", "ajay kumar")
