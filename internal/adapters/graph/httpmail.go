@@ -39,6 +39,9 @@ func (c *HTTPClient) bearer(force bool) string {
 	return c.Token
 }
 
+// maxRefusalDrain caps how much of a 401 body is read before the retry.
+const maxRefusalDrain = 64 << 10
+
 func (c *HTTPClient) httpc() *http.Client {
 	if c.Client != nil {
 		return c.Client
@@ -74,7 +77,7 @@ func (c *HTTPClient) request(ctx context.Context, method, raw string, body []byt
 		return nil, err
 	}
 	if res.StatusCode == http.StatusUnauthorized && c.Refresh != nil {
-		_, _ = io.Copy(io.Discard, res.Body)
+		_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxRefusalDrain))
 		_ = res.Body.Close()
 		res, err = try(true)
 	}
