@@ -383,7 +383,7 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
   - **Stop** and report if the sign-in stops at admin approval, if a tenant code appears, or if the lookup finds no meeting or returns a 403 without a tenant code. The last case means returning to design.
   - Record the outcome in Notes without real names or transcript text. Write "speaker count N, matched the expected attendees: yes/no".
 - [X] T063 Run every row of quickstart.md's "Automated validation" table, and mark each pass in Notes.
-- [ ] T064 Ask Mason before any push, PR or merge, and merge only on his explicit yes. Update `~/.work/m365/2026-11-10-teams-meeting-transcripts/task.md` with the commits, gates, reviews and the live-check outcome.
+- [X] T064 Ask Mason before any push, PR or merge, and merge only on his explicit yes. Update `~/.work/m365/2026-11-10-teams-meeting-transcripts/task.md` with the commits, gates, reviews and the live-check outcome.
 
 ---
 
