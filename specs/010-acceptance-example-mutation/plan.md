@@ -34,7 +34,7 @@ Make the APS example-mutation stage real and retire EX-EC-002. The acceptance ru
 
 ## Complexity Tracking
 
-None. EX-EC-002 is deleted by this feature. `Parse` and `checkFeature` in `acceptance/runtime` remain only for their locked tests; retiring them needs Mason's approval to delete those tests (follow-up).
+None. EX-EC-002 is deleted by this feature. `Parse` and `checkFeature` remain: `RunFeature` uses them when a feature has no IR file (a test calling it before `scripts/acceptance.sh`).
 
 ## Out of This Plan
 
