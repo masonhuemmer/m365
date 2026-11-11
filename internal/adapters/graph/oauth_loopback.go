@@ -71,10 +71,10 @@ func LoginPKCE(ctx context.Context, cfg *oauth2.Config, open auth.BrowserOpener,
 	if err != nil {
 		return auth.Blob{}, domain.Auth(err.Error())
 	}
-	return blobFromToken(ctx, tok), nil
+	return blobFromToken(ctx, tok, cfg.Scopes), nil
 }
 
-func blobFromToken(ctx context.Context, tok *oauth2.Token) auth.Blob {
+func blobFromToken(ctx context.Context, tok *oauth2.Token, requested []string) auth.Blob {
 	scope := ""
 	if s, ok := tok.Extra("scope").(string); ok {
 		scope = s
@@ -88,6 +88,7 @@ func blobFromToken(ctx context.Context, tok *oauth2.Token) auth.Blob {
 		Teams:        strings.Contains(scope, "Chat"),
 		Calendar:     strings.Contains(scope, "Calendars."),
 		Files:        strings.Contains(scope, "Files."),
+		Meetings:     meetingsGranted(scope, requested),
 		Account:      "signed-in",
 	}
 	if b.AccessToken != "" {
@@ -99,6 +100,15 @@ func blobFromToken(ctx context.Context, tok *oauth2.Token) auth.Blob {
 		}
 	}
 	return b
+}
+
+// meetingsGranted reports meetings consent: the token grants both meetings
+// scopes or, when the response omits scope, both were requested.
+func meetingsGranted(scope string, requested []string) bool {
+	if scope == "" {
+		scope = strings.Join(requested, " ")
+	}
+	return strings.Contains(scope, "OnlineMeetings.Read") && strings.Contains(scope, "OnlineMeetingTranscript.Read.All")
 }
 
 func fetchMe(ctx context.Context, token string) string {
@@ -128,9 +138,9 @@ func fetchMe(ctx context.Context, token string) string {
 	return me.UPN
 }
 
-func RealLogin(clientID, tenantID string) auth.LoginFn {
+func RealLogin(clientID, tenantID string, extra ...string) auth.LoginFn {
 	return func(ctx context.Context) (auth.Blob, error) {
-		cfg := PKCEConfig(clientID, tenantID, "")
+		cfg := PKCEConfig(clientID, tenantID, "", extra...)
 		cfg.Endpoint.AuthStyle = oauth2.AuthStyleInParams
 		noBrowser := false
 		open := func(u string) error {
@@ -148,8 +158,8 @@ func RealLogin(clientID, tenantID string) auth.LoginFn {
 }
 
 // RealDeviceLogin signs in with the device code flow: no browser or redirect on this machine.
-func RealDeviceLogin(clientID, tenantID string) auth.LoginFn {
+func RealDeviceLogin(clientID, tenantID string, extra ...string) auth.LoginFn {
 	return func(ctx context.Context) (auth.Blob, error) {
-		return deviceLogin(ctx, PKCEConfig(clientID, tenantID, ""), os.Stderr)
+		return deviceLogin(ctx, PKCEConfig(clientID, tenantID, "", extra...), os.Stderr)
 	}
 }

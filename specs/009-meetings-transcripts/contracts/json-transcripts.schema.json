@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "m365/meetings-transcripts.json",
+  "title": "m365 meetings transcripts stdout",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["count", "items"],
+  "properties": {
+    "count": { "type": "integer", "minimum": 0 },
+    "items": {
+      "type": "array",
+      "description": "In-scope transcripts, newest created first.",
+      "items": { "$ref": "#/$defs/transcript" }
+    }
+  },
+  "$defs": {
+    "transcript": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "created", "ended"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "created": { "type": "string", "format": "date-time" },
+        "ended": { "type": "string", "description": "RFC 3339 UTC instant; empty while transcription is still running." }
+      }
+    }
+  }
+}
