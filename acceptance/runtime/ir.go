@@ -2,7 +2,9 @@ package runtime
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -143,9 +145,14 @@ func substitute(text string, row map[string]string) (string, error) {
 }
 
 // planFeature loads and expands a feature's IR and checks that every
-// expanded step has a handler, reporting all that do not.
+// expanded step has a handler, reporting all that do not. A feature with no
+// IR file and no M365_ACCEPTANCE_IR (a test calling RunFeature before
+// scripts/acceptance.sh has run) is read as text instead.
 func planFeature(featurePath string) ([]scenarioRun, error) {
 	f, err := loadIR(irPathFor(featurePath))
+	if errors.Is(err, fs.ErrNotExist) && os.Getenv(irEnv) == "" {
+		return planFromText(featurePath)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -155,6 +162,20 @@ func planFeature(featurePath string) ([]scenarioRun, error) {
 	}
 	if missing := unmatchedSteps(asFeature(runs)); len(missing) > 0 {
 		return nil, fmt.Errorf("%s: no step handler for:\n  %s", featurePath, strings.Join(missing, "\n  "))
+	}
+	return runs, nil
+}
+
+// planFromText runs a feature through the text parser, which refuses
+// outlines, examples and background, so such a feature still needs its IR.
+func planFromText(featurePath string) ([]scenarioRun, error) {
+	feat, err := checkFeature(featurePath)
+	if err != nil {
+		return nil, err
+	}
+	runs := make([]scenarioRun, 0, len(feat.Scenarios))
+	for _, sc := range feat.Scenarios {
+		runs = append(runs, scenarioRun{Name: sc.Name, Runs: []execution{{Steps: sc.Steps}}})
 	}
 	return runs, nil
 }
