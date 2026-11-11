@@ -39,12 +39,12 @@ func TestPKCEHelpers(t *testing.T) {
 }
 
 func TestStartLoopbackReceivesCode(t *testing.T) {
-	redirect, wait, err := StartLoopback()
+	redirect, wait, err := StartLoopback("s")
 	if err != nil {
 		t.Fatal(err)
 	}
 	go func() {
-		_, _ = http.Get(redirect + "?code=abc")
+		_, _ = http.Get(redirect + "?code=abc&state=s")
 	}()
 	code, err := wait(context.Background())
 	if err != nil || code != "abc" {

@@ -104,7 +104,7 @@ One exception, EX-009-01 (see [Complexity Tracking](#complexity-tracking)).
 
 **Implementation notes (2026-11-10):**
 - The CRAP ratchet stopped `Run` (internal/adapters/cli/run.go) from rising when the `meetings` case was added. So GREEN `e0325e0`, not a separate REFACTOR commit, routes workload namespaces through `namespaceRunners()`.
-- The shared transport drains a 401 body with no cap before its single retry. That is a pre-existing gap in `HTTPClient.request`, which this feature doesn't change. It is a follow-up for every namespace.
+- The shared transport drains a 401 body with no cap before its single retry. That is a pre-existing gap in `HTTPClient.request`, which this feature doesn't change. It is a follow-up for every namespace. Fixed 2026-11-11 on branch `fix-review-followups`: the drain reads at most 64 KiB.
 
 **Post-design re-check (after Phase 1): PASS.**
 - The contracts keep the error schema and add `meetings` to `auth status`.
@@ -222,4 +222,4 @@ A breach of any threshold is a defect and blocks completion. Latency and binary 
 
 | Exception | Principle | Rationale | Scope | Retirement |
 |---|---|---|---|---|
-| EX-009-01, approved by Mason 2026-11-10 | Engineering Constraints: the CRAP waiver EX-EC-001 says "fix a function when you change it" | `LoginPKCE` (internal/adapters/graph/oauth_loopback.go, baselined at 156, no coverage) gained a one-argument pass-through of the requested scopes. Its score is unchanged. Covering it needs the `/me` lookup injected so a test doesn't call live Graph. | `LoginPKCE` only, for spec 009 | A separate task injects the `/me` lookup, adds `LoginPKCE` coverage, and removes its baseline entry |
+| EX-009-01, approved by Mason 2026-11-10 | Engineering Constraints: the CRAP waiver EX-EC-001 says "fix a function when you change it" | `LoginPKCE` (internal/adapters/graph/oauth_loopback.go, baselined at 156, no coverage) gained a one-argument pass-through of the requested scopes. Its score is unchanged. Covering it needs the `/me` lookup injected so a test doesn't call live Graph. | `LoginPKCE` only, for spec 009 | A separate task injects the `/me` lookup, adds `LoginPKCE` coverage, and removes its baseline entry. **Retired 2026-11-11** on branch `fix-review-followups`: `LoginPKCE` scores 7.0 and its baseline entry is gone. |

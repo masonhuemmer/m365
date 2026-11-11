@@ -31,8 +31,9 @@ type LoginFn func(ctx context.Context) (Blob, error)
 // BrowserOpener opens an authorize URL (system browser in production, fake in tests).
 type BrowserOpener func(authorizeURL string) error
 
-// LoopbackStart binds 127.0.0.1 and returns the redirect URL plus a wait for the code.
-type LoopbackStart func() (redirectURL string, wait func(context.Context) (code string, err error), err error)
+// LoopbackStart binds 127.0.0.1 and returns the redirect URL plus a wait for the
+// code of the callback that carries state.
+type LoopbackStart func(state string) (redirectURL string, wait func(context.Context) (code string, err error), err error)
 
 func Status(s Store) (domain.Session, error) {
 	b, ok, err := s.Get()
