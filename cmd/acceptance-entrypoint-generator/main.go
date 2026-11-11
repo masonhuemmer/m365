@@ -17,7 +17,14 @@ func main() {
 
 func run(list bool) error {
 	if !list {
-		return generate("features", "acceptance/generated")
+		if err := generate("features", "acceptance/generated"); err != nil {
+			return err
+		}
+		features, err := listFeatures("features")
+		if err != nil {
+			return err
+		}
+		return writeMetadata(features, "acceptance/generated", "build/acceptance/ir", "build/acceptance/metadata")
 	}
 	features, err := listFeatures("features")
 	if err != nil {
