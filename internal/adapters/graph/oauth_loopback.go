@@ -17,7 +17,7 @@ import (
 	"github.com/masonhuemmer/m365/internal/domain"
 )
 
-func StartLoopback() (string, func(context.Context) (string, error), error) {
+func StartLoopback(state string) (string, func(context.Context) (string, error), error) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", nil, domain.Auth(err.Error())
@@ -49,17 +49,21 @@ func StartLoopback() (string, func(context.Context) (string, error), error) {
 	return redirect, wait, nil
 }
 
+// newState returns the OAuth state for one sign-in.
+var newState = func() string { return "state" }
+
 func LoginPKCE(ctx context.Context, cfg *oauth2.Config, open auth.BrowserOpener, start auth.LoopbackStart) (auth.Blob, error) {
 	if open == nil || start == nil {
 		return auth.Blob{}, domain.Auth("login not available")
 	}
-	redirect, wait, err := start()
+	state := newState()
+	redirect, wait, err := start(state)
 	if err != nil {
 		return auth.Blob{}, err
 	}
 	cfg.RedirectURL = redirect
 	v := oauth2.GenerateVerifier()
-	u := cfg.AuthCodeURL("state", oauth2.S256ChallengeOption(v), oauth2.AccessTypeOffline)
+	u := cfg.AuthCodeURL(state, oauth2.S256ChallengeOption(v), oauth2.AccessTypeOffline)
 	if err := open(u); err != nil {
 		return auth.Blob{}, domain.Auth(err.Error())
 	}

@@ -46,7 +46,7 @@ func pkceFixture(t *testing.T, status int) (*oauth2.Config, *url.Values) {
 
 // fakeStart is a loopback that returns code and err when waited on.
 func fakeStart(code string, err error) auth.LoopbackStart {
-	return func() (string, func(context.Context) (string, error), error) {
+	return func(string) (string, func(context.Context) (string, error), error) {
 		return syntheticRedirect, func(context.Context) (string, error) { return code, err }, nil
 	}
 }
@@ -83,7 +83,7 @@ func TestLoginPKCERedeemsTheCodeWithItsVerifier(t *testing.T) {
 
 func TestLoginPKCEFailuresAreAuthErrors(t *testing.T) {
 	ok := func(string) error { return nil }
-	bindFails := func() (string, func(context.Context) (string, error), error) {
+	bindFails := func(string) (string, func(context.Context) (string, error), error) {
 		return "", nil, domain.Auth("synthetic bind failure")
 	}
 	cases := []struct {
