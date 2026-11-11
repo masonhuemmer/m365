@@ -52,7 +52,6 @@
 20.0 internal/adapters/graph/httpfiles.go (*HTTPFiles).CreateFolder
 20.0 internal/adapters/cli/teams.go teamsSave
 20.0 internal/adapters/cli/files.go filesMkdir
-20.0 cmd/acceptance-entrypoint-generator/main.go run
 19.0 internal/adapters/cli/teams.go teamsWatch
 17.6 internal/app/calendar/free.go parseHours
 16.8 internal/adapters/jev/client.go (*Client).Classify
