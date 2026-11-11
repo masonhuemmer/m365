@@ -1,11 +1,16 @@
 #!/bin/sh
 set -eu
 cd "$(dirname "$0")/.."
-APS_SHA="accaa33d503340c56513ef387258f8da929ba902"
 export PATH="$PWD/.tools/bin:$PATH"
-if command -v gherkin-mutator >/dev/null 2>&1; then
-  mkdir -p build/acceptance-mutation
-  echo "gherkin-mutator present APS=$APS_SHA"
+# APS mutates the values in Examples tables. No feature has one yet, so no
+# mutation can run; exception EX-EC-002 in specs/001-m365-cli/plan.md records
+# the gap. This fails once a feature gains an Examples table, because nothing
+# here mutates it yet.
+tables=$(grep -rlE '^[[:space:]]*Examples:' features | wc -l | tr -d ' ')
+if [ "$tables" -gt 0 ]; then
+  echo "acceptance-mutation: $tables feature(s) have Examples tables but no mutator is wired (EX-EC-002); wire gherkin-mutator first" >&2
+  exit 1
 fi
 printf '%s\n' '{"ir":"build/acceptance/ir"}' | go run ./acceptance/runner >/dev/null
-echo "acceptance-mutation: test_success"
+features=$(find features -name '*.feature' | wc -l | tr -d ' ')
+echo "acceptance-mutation: no example mutations ran (no Examples tables in $features features; EX-EC-002)"
