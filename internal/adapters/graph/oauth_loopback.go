@@ -26,7 +26,12 @@ func StartLoopback(state string) (string, func(context.Context) (string, error),
 	redirect := "http://localhost:" + port + "/"
 	ch := make(chan string, 1)
 	srv := &http.Server{ReadHeaderTimeout: 3 * time.Second, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c := r.URL.Query().Get("code")
+		q := r.URL.Query()
+		if q.Get("state") != state {
+			http.Error(w, "state mismatch", http.StatusBadRequest)
+			return
+		}
+		c := q.Get("code")
 		_, _ = io.WriteString(w, "ok")
 		select {
 		case ch <- c:
@@ -49,8 +54,8 @@ func StartLoopback(state string) (string, func(context.Context) (string, error),
 	return redirect, wait, nil
 }
 
-// newState returns the OAuth state for one sign-in.
-var newState = func() string { return "state" }
+// newState returns the OAuth state for one sign-in: 32 random bytes.
+var newState = oauth2.GenerateVerifier
 
 func LoginPKCE(ctx context.Context, cfg *oauth2.Config, open auth.BrowserOpener, start auth.LoopbackStart) (auth.Blob, error) {
 	if open == nil || start == nil {
