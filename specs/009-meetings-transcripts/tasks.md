@@ -376,7 +376,7 @@ Locked tests are never edited afterwards without Mason's approval. If a locked t
   - run an independent Codex adversarial review of the branch diff through the `codex:codex-rescue` agent;
   - save both reports in `~/.work/m365/2026-11-10-teams-meeting-transcripts/reviews/`;
   - fix confirmed findings with their own RED/GREEN commits, never by editing locked tests.
-- [ ] T062 Live check (SC-007), per quickstart.md "Live check":
+- [X] T062 Live check (SC-007), per quickstart.md "Live check":
   - Build to a scratch path outside the repository: `go build -o "$SCRATCH/m365" ./cmd/m365`.
   - Ask Mason to run `! "$SCRATCH/m365" auth login --meetings`.
   - Then run steps 2–5 against the meeting he named in the task. Save it to `$SCRATCH`, never the repository. Report only the `speakers` array and the file mode.
@@ -480,4 +480,8 @@ US4 tests:              T051 ‖ T052 ‖ T053 ‖ T054
     - redirects may keep the bearer token for subdomains; this predates the branch, applies to every namespace, and Codex found no evidence Graph sends such redirects;
     - `main.go` passes `MeetingsScopes` to both logins without a unit test, which the live check covers for the browser path;
     - the remaining review smells are judgement calls on names, data clumps and the `d.Write` fallback.
-
+- **T062** (2026-11-11): passed.
+  - The first `auth login --meetings` stopped at admin approval until the tenant admin granted consent for both meetings scopes; a stale browser cache then kept showing the approval page. After that, sign-in succeeded and `auth status` reported `meetings: true`.
+  - The named meeting had one transcript in the `--event` window. The save wrote 33,311 bytes of WebVTT, mode 0600, to the session scratchpad, outside the repository. The scratch copy was deleted after Mason admitted the file.
+  - Speaker count 5, matched the expected attendees: yes (Mason confirmed). All 201 cues carry a voice tag.
+  - R1 holds: `$format=text/vtt` returns attributed WebVTT, so the `Accept` fallback isn't needed.
