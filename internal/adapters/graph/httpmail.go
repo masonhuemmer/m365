@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -39,11 +40,30 @@ func (c *HTTPClient) bearer(force bool) string {
 	return c.Token
 }
 
+// maxRefusalDrain caps how much of a 401 body is read before the retry.
+const maxRefusalDrain = 64 << 10
+
 func (c *HTTPClient) httpc() *http.Client {
+	base := http.DefaultClient
 	if c.Client != nil {
-		return c.Client
+		base = c.Client
 	}
-	return http.DefaultClient
+	cl := *base
+	cl.CheckRedirect = tokenStaysOnOrigin
+	return &cl
+}
+
+// tokenStaysOnOrigin drops the bearer token on a redirect to another scheme,
+// host or port. net/http alone forwards it to subdomains.
+func tokenStaysOnOrigin(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	first := via[0].URL
+	if req.URL.Scheme != first.Scheme || !strings.EqualFold(req.URL.Host, first.Host) {
+		req.Header.Del("Authorization")
+	}
+	return nil
 }
 
 func (c *HTTPClient) request(ctx context.Context, method, raw string, body []byte, contentType, prefer string) (*http.Response, error) {
@@ -74,7 +94,7 @@ func (c *HTTPClient) request(ctx context.Context, method, raw string, body []byt
 		return nil, err
 	}
 	if res.StatusCode == http.StatusUnauthorized && c.Refresh != nil {
-		_, _ = io.Copy(io.Discard, res.Body)
+		_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxRefusalDrain))
 		_ = res.Body.Close()
 		res, err = try(true)
 	}
@@ -102,15 +122,14 @@ func (c *HTTPClient) do(ctx context.Context, method, path string) (*http.Respons
 
 func allowedNext(base, next string) bool {
 	u, err := url.Parse(next)
-	if err != nil || (u.Scheme != "https" && u.Scheme != "http") {
+	if err != nil {
 		return false
 	}
-	host := strings.ToLower(u.Host)
-	if strings.Contains(host, "graph.microsoft.com") {
+	if u.Scheme == "https" && strings.EqualFold(u.Host, "graph.microsoft.com") {
 		return true
 	}
 	b, err := url.Parse(base)
-	return err == nil && strings.EqualFold(b.Host, u.Host)
+	return err == nil && u.Scheme == b.Scheme && strings.EqualFold(b.Host, u.Host)
 }
 
 func encodeNext(next string) string {

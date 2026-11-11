@@ -1,6 +1,8 @@
 package fs
 
 import (
+	"errors"
+	iofs "io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -32,14 +34,50 @@ func WriteFile(path string, data []byte, overwrite bool) error {
 	if path == "" {
 		return domain.Usage("destination path is required")
 	}
-	if _, err := os.Stat(path); err == nil && !overwrite {
-		return domain.Usage("destination exists; pass --overwrite")
-	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil && !os.IsExist(err) {
 		return domain.Usagef("unwritable path: %s", path)
 	}
-	if err := os.WriteFile(path, data, 0o600); err != nil {
+	flags := os.O_WRONLY | os.O_CREATE | os.O_EXCL
+	if overwrite {
+		if st, err := os.Lstat(path); err == nil && !st.Mode().IsRegular() {
+			return domain.Usagef("destination is not a regular file: %s", path)
+		}
+		flags = os.O_WRONLY | os.O_CREATE
+	}
+	f, err := os.OpenFile(path, flags, 0o600) // #nosec G304 -- caller --out path
+	if errors.Is(err, iofs.ErrExist) {
+		return domain.Usage("destination exists; pass --overwrite")
+	}
+	if err != nil {
+		return domain.Usagef("unwritable path: %s", path)
+	}
+	if err := writeOwnerOnly(f, data); err != nil {
 		return domain.Usagef("unwritable path: %s", path)
 	}
 	return nil
+}
+
+// ownedFile is the part of *os.File that writeOwnerOnly uses.
+type ownedFile interface {
+	Chmod(os.FileMode) error
+	Truncate(int64) error
+	Write([]byte) (int, error)
+	Close() error
+}
+
+// writeOwnerOnly makes an overwritten file 0600 too (OpenFile keeps an
+// existing file's mode), and truncates only after Chmod succeeds, so a
+// failure leaves the old content in place.
+func writeOwnerOnly(f ownedFile, data []byte) error {
+	err := f.Chmod(0o600)
+	if err == nil {
+		err = f.Truncate(0)
+	}
+	if err == nil {
+		_, err = f.Write(data)
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	return err
 }

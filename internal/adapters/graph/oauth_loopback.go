@@ -17,7 +17,7 @@ import (
 	"github.com/masonhuemmer/m365/internal/domain"
 )
 
-func StartLoopback() (string, func(context.Context) (string, error), error) {
+func StartLoopback(state string) (string, func(context.Context) (string, error), error) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", nil, domain.Auth(err.Error())
@@ -26,7 +26,12 @@ func StartLoopback() (string, func(context.Context) (string, error), error) {
 	redirect := "http://localhost:" + port + "/"
 	ch := make(chan string, 1)
 	srv := &http.Server{ReadHeaderTimeout: 3 * time.Second, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c := r.URL.Query().Get("code")
+		q := r.URL.Query()
+		if q.Get("state") != state {
+			http.Error(w, "state mismatch", http.StatusBadRequest)
+			return
+		}
+		c := q.Get("code")
 		_, _ = io.WriteString(w, "ok")
 		select {
 		case ch <- c:
@@ -49,17 +54,21 @@ func StartLoopback() (string, func(context.Context) (string, error), error) {
 	return redirect, wait, nil
 }
 
+// newState returns the OAuth state for one sign-in: 32 random bytes.
+var newState = oauth2.GenerateVerifier
+
 func LoginPKCE(ctx context.Context, cfg *oauth2.Config, open auth.BrowserOpener, start auth.LoopbackStart) (auth.Blob, error) {
 	if open == nil || start == nil {
 		return auth.Blob{}, domain.Auth("login not available")
 	}
-	redirect, wait, err := start()
+	state := newState()
+	redirect, wait, err := start(state)
 	if err != nil {
 		return auth.Blob{}, err
 	}
 	cfg.RedirectURL = redirect
 	v := oauth2.GenerateVerifier()
-	u := cfg.AuthCodeURL("state", oauth2.S256ChallengeOption(v), oauth2.AccessTypeOffline)
+	u := cfg.AuthCodeURL(state, oauth2.S256ChallengeOption(v), oauth2.AccessTypeOffline)
 	if err := open(u); err != nil {
 		return auth.Blob{}, domain.Auth(err.Error())
 	}
@@ -71,10 +80,10 @@ func LoginPKCE(ctx context.Context, cfg *oauth2.Config, open auth.BrowserOpener,
 	if err != nil {
 		return auth.Blob{}, domain.Auth(err.Error())
 	}
-	return blobFromToken(ctx, tok), nil
+	return blobFromToken(ctx, tok, cfg.Scopes), nil
 }
 
-func blobFromToken(ctx context.Context, tok *oauth2.Token) auth.Blob {
+func blobFromToken(ctx context.Context, tok *oauth2.Token, requested []string) auth.Blob {
 	scope := ""
 	if s, ok := tok.Extra("scope").(string); ok {
 		scope = s
@@ -88,10 +97,11 @@ func blobFromToken(ctx context.Context, tok *oauth2.Token) auth.Blob {
 		Teams:        strings.Contains(scope, "Chat"),
 		Calendar:     strings.Contains(scope, "Calendars."),
 		Files:        strings.Contains(scope, "Files."),
+		Meetings:     meetingsGranted(scope, requested),
 		Account:      "signed-in",
 	}
 	if b.AccessToken != "" {
-		if acct := fetchMe(ctx, tok.AccessToken); acct != "" {
+		if acct := lookupAccount(ctx, tok.AccessToken); acct != "" {
 			b.Account = acct
 		}
 		if !b.Mail && !b.Teams {
@@ -101,8 +111,24 @@ func blobFromToken(ctx context.Context, tok *oauth2.Token) auth.Blob {
 	return b
 }
 
+// meetingsGranted reports meetings consent: the token grants both meetings
+// scopes or, when the response omits scope, both were requested.
+func meetingsGranted(scope string, requested []string) bool {
+	if scope == "" {
+		scope = strings.Join(requested, " ")
+	}
+	return strings.Contains(scope, "OnlineMeetings.Read") && strings.Contains(scope, "OnlineMeetingTranscript.Read.All")
+}
+
+// lookupAccount names the signed-in account. Tests replace it so a sign-in
+// test never calls live Graph.
+var lookupAccount = fetchMe
+
+// meURL is the Graph endpoint fetchMe reads; tests point it at a synthetic server.
+var meURL = "https://graph.microsoft.com/v1.0/me"
+
 func fetchMe(ctx context.Context, token string) string {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://graph.microsoft.com/v1.0/me", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, meURL, nil)
 	if err != nil {
 		return ""
 	}
@@ -128,9 +154,9 @@ func fetchMe(ctx context.Context, token string) string {
 	return me.UPN
 }
 
-func RealLogin(clientID, tenantID string) auth.LoginFn {
+func RealLogin(clientID, tenantID string, extra ...string) auth.LoginFn {
 	return func(ctx context.Context) (auth.Blob, error) {
-		cfg := PKCEConfig(clientID, tenantID, "")
+		cfg := PKCEConfig(clientID, tenantID, "", extra...)
 		cfg.Endpoint.AuthStyle = oauth2.AuthStyleInParams
 		noBrowser := false
 		open := func(u string) error {
@@ -148,8 +174,8 @@ func RealLogin(clientID, tenantID string) auth.LoginFn {
 }
 
 // RealDeviceLogin signs in with the device code flow: no browser or redirect on this machine.
-func RealDeviceLogin(clientID, tenantID string) auth.LoginFn {
+func RealDeviceLogin(clientID, tenantID string, extra ...string) auth.LoginFn {
 	return func(ctx context.Context) (auth.Blob, error) {
-		return deviceLogin(ctx, PKCEConfig(clientID, tenantID, ""), os.Stderr)
+		return deviceLogin(ctx, PKCEConfig(clientID, tenantID, "", extra...), os.Stderr)
 	}
 }

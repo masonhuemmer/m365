@@ -15,7 +15,17 @@ import (
 type HTTPTeams struct{ *HTTPClient }
 
 func (c *HTTPTeams) ListChats(ctx context.Context, top int, page string) (domain.ChatPage, error) {
-	path := "/me/chats?$expand=members&$top=" + strconv.Itoa(top)
+	return c.listChats(ctx, top, page, "")
+}
+
+// ListVisibleChats asks Graph to leave out chats the user hid, so pages stay full. The
+// next-page link Graph returns carries the filter along.
+func (c *HTTPTeams) ListVisibleChats(ctx context.Context, top int, page string) (domain.ChatPage, error) {
+	return c.listChats(ctx, top, page, "&$filter="+url.QueryEscape("viewpoint/isHidden eq false"))
+}
+
+func (c *HTTPTeams) listChats(ctx context.Context, top int, page, filter string) (domain.ChatPage, error) {
+	path := "/me/chats?$expand=members&$top=" + strconv.Itoa(top) + filter
 	if page != "" {
 		if next, ok := decodeNext(page); ok {
 			if strings.HasPrefix(next, "http") {
@@ -64,6 +74,9 @@ func (c *HTTPTeams) GetChat(ctx context.Context, id string) (domain.Chat, error)
 
 func mapGraphChat(g graphChat) domain.Chat {
 	c := domain.Chat{ID: g.ID, Topic: g.Topic, Type: g.ChatType}
+	if g.Viewpoint != nil {
+		c.Hidden = g.Viewpoint.IsHidden
+	}
 	for _, m := range g.Members {
 		c.Members = append(c.Members, domain.Person{ID: m.UserID, Name: m.DisplayName, Address: m.Email})
 	}
@@ -119,6 +132,10 @@ type graphChat struct {
 	Topic    string        `json:"topic"`
 	ChatType string        `json:"chatType"`
 	Members  []graphMember `json:"members"`
+	// Viewpoint is the signed-in user's own view of the chat.
+	Viewpoint *struct {
+		IsHidden bool `json:"isHidden"`
+	} `json:"viewpoint"`
 }
 type graphMember struct {
 	UserID      string `json:"userId"`
@@ -142,6 +159,7 @@ type graphChatMsg struct {
 	} `json:"from"`
 }
 type graphIdentity struct {
+	ID          string `json:"id"`
 	DisplayName string `json:"displayName"`
 }
 
@@ -154,8 +172,12 @@ func (g graphChatMsg) toChatMessage(chatID string) domain.ChatMessage {
 	if g.From != nil {
 		if g.From.User != nil {
 			m.From = g.From.User.DisplayName
+			m.FromUserID = g.From.User.ID
+			m.SenderType = "user"
 		} else if g.From.Application != nil {
 			m.From = g.From.Application.DisplayName
+			m.FromApplicationID = g.From.Application.ID
+			m.SenderType = "application"
 		}
 	}
 	return m

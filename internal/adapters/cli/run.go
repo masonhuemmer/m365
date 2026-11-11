@@ -14,6 +14,7 @@ import (
 	"github.com/masonhuemmer/m365/internal/app/calendar"
 	"github.com/masonhuemmer/m365/internal/app/files"
 	"github.com/masonhuemmer/m365/internal/app/mail"
+	"github.com/masonhuemmer/m365/internal/app/meetings"
 	"github.com/masonhuemmer/m365/internal/app/teams"
 	"github.com/masonhuemmer/m365/internal/config"
 	"github.com/masonhuemmer/m365/internal/domain"
@@ -34,8 +35,11 @@ type Deps struct {
 	ChatMap             teams.ChatMap
 	Calendar            calendar.Store
 	Files               files.Store
+	Meetings            meetings.Store
 	Login               auth.LoginFn
 	DeviceLogin         auth.LoginFn
+	MeetingsLogin       auth.LoginFn
+	MeetingsDeviceLogin auth.LoginFn
 	Write               func(string, []byte, bool) error
 	Watch               WatchStore
 	Stdin               io.Reader
@@ -80,24 +84,25 @@ func Run(args []string, d Deps) int {
 	if ns == "chat" {
 		ns = "teams"
 	}
-	switch ns {
-	case "auth":
+	if ns == "auth" {
 		return runAuth(rest, d, format, verbose)
-	case "mail":
-		return runMail(rest, d, format)
-	case "teams":
-		return runTeams(rest, d, format)
-	case "calendar":
-		return runCalendar(rest, d, format)
-	case "files":
-		return runFiles(rest, d, format)
-	case "mcp":
-		return runMCP(rest, d, format)
-	default:
-		if strings.HasPrefix(ns, "-") {
-			return writeHelp(d.Stdout, rootHelp)
-		}
-		return fail(d, domain.Usagef("unknown namespace %q", ns))
+	}
+	if run, ok := namespaceRunners()[ns]; ok {
+		return run(rest, d, format)
+	}
+	if strings.HasPrefix(ns, "-") {
+		return writeHelp(d.Stdout, rootHelp)
+	}
+	return fail(d, domain.Usagef("unknown namespace %q", ns))
+}
+
+// namespaceRunners maps each workload namespace to its runner. It is built
+// per call: runMCP re-enters Run, so a package-level map would be an
+// initialization cycle.
+func namespaceRunners() map[string]func([]string, Deps, string) int {
+	return map[string]func([]string, Deps, string) int{
+		"mail": runMail, "teams": runTeams, "calendar": runCalendar,
+		"files": runFiles, "meetings": runMeetings, "mcp": runMCP,
 	}
 }
 

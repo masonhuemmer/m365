@@ -2,6 +2,7 @@ package graph
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -65,5 +66,23 @@ func TestHTTPTeamsMessagesPage(t *testing.T) {
 	p, err = c.Messages(context.Background(), teams.MessageQuery{ChatID: "chat-1", Top: 1, PageToken: *p.NextPage})
 	if err != nil || p.NextPage != nil || p.Items[0].From != "Bob" {
 		t.Fatalf("page 2: %+v %v", p, err)
+	}
+}
+
+func TestMessageSenderIDsAreNotInferredFromDisplayName(t *testing.T) {
+	raw := []graphChatMsg{}
+	data := `[{"id":"one","from":{"user":{"id":"allowed","displayName":"Same name"}}},{"id":"two","from":{"user":{"id":"other","displayName":"Same name"}}},{"id":"app","from":{"application":{"id":"bot","displayName":"Same name"}}},{"id":"missing","from":{"user":{"displayName":"Same name"}}}]`
+	if err := json.Unmarshal([]byte(data), &raw); err != nil {
+		t.Fatal(err)
+	}
+	first, second, app, missing := raw[0].toChatMessage("c"), raw[1].toChatMessage("c"), raw[2].toChatMessage("c"), raw[3].toChatMessage("c")
+	if first.FromUserID != "allowed" || second.FromUserID != "other" || first.SenderType != "user" {
+		t.Fatal("user identity lost")
+	}
+	if app.FromUserID != "" || app.FromApplicationID != "bot" || app.SenderType != "application" {
+		t.Fatal("application confused with user")
+	}
+	if missing.FromUserID != "" {
+		t.Fatal("invented missing identity")
 	}
 }

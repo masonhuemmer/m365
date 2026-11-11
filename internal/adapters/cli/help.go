@@ -10,8 +10,10 @@ Namespaces:
   teams     Teams chats (alias: chat)
   calendar  own calendars and events
   files     own OneDrive
+  meetings  Teams meeting transcripts
   mcp       stdio MCP for agents (serve)
 
+Sign in: m365 auth login [--device-code] [--meetings]
 Output: JSON on stdout by default. --human for text. Diagnostics on stderr.
 Exit classes: 0 success; 3 usage/config; 4 auth; 5 service; 6 not-found.
 
@@ -37,6 +39,20 @@ Verbs: root, list, get, download, upload, create-folder, delete, move
 Flags: --folder --top (default 20, max 50) --page-token --out --overwrite --file --name --dry-run
 Upload: max 100 MiB per file. Download requires --out; existing file refused without --overwrite.
 Output: JSON (default) or --human. No file bytes on stdout.
+`
+
+const meetingsHelp = `m365 meetings — Teams meeting transcripts you were invited to
+
+Verbs: transcripts (list), transcript (save one)
+Name the meeting: --event EVENT_ID (from calendar list) or --join-url URL (https). Exactly one.
+--event lists transcripts that started from 1 hour before the event to 1 hour after it ended.
+--join-url lists all of the meeting's transcripts.
+Save: --out FILE (required) --id TRANSCRIPT_ID (when several) --overwrite
+The file is the attributed WebVTT, byte for byte, owner-only. No transcript text on stdout.
+Limits: 10 pages of transcripts; 10 MiB of content.
+Needs: m365 auth login --meetings (admin-consented scopes); --event also needs calendar consent.
+Tenant codes (exit 4): GraphAccessToTranscriptsDisabled, SpeakerAttributionNotAllowed.
+Output: JSON (default) or --human.
 `
 
 const mailListHelp = `m365 mail list — list messages
@@ -87,7 +103,9 @@ Output modes: --json (default) --human
 
 const teamsListHelp = `m365 teams list — list chats
 
-Flags: --top (default 20, max 50) --page-token
+Flags: --top (default 20, max 50) --page-token --include-hidden
+Chats you hid with teams hide are skipped; --include-hidden lists them too, marked hidden: true
+(use it to find a CHAT_ID for teams unhide).
 Output: JSON (default) or --human.
 `
 
@@ -96,6 +114,8 @@ const teamsMessagesHelp = `m365 teams messages — read messages in a chat
 Required: CHAT_ID (from teams list or teams find)
 Flags: --top (default 20, max 50) --page-token --include-system
 Each item has from: the sender's display name, or the app name for bot posts.
+Original Graph identity is preserved as sender_type plus from_user_id or from_application_id.
+Use the original ID, never the display name, to authorize a reply; absent IDs stay absent.
 System events (member added, call ended) are skipped unless --include-system.
 Output: JSON (default) or --human.
 `

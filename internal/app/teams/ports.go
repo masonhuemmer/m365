@@ -49,6 +49,8 @@ type WatchQuery struct {
 
 type Store interface {
 	ListChats(ctx context.Context, top int, page string) (domain.ChatPage, error)
+	// ListVisibleChats is ListChats without the chats the signed-in user hid.
+	ListVisibleChats(ctx context.Context, top int, page string) (domain.ChatPage, error)
 	GetChat(ctx context.Context, id string) (domain.Chat, error)
 	Messages(ctx context.Context, q MessageQuery) (domain.ChatMessagePage, error)
 	Send(ctx context.Context, in SendInput) (string, error)
@@ -63,10 +65,12 @@ type Store interface {
 }
 
 func List(ctx context.Context, st Store, sess domain.Session, top int, page string) (domain.ChatPage, error) {
-	return ListMapped(ctx, st, nil, sess, top, page)
+	return ListMapped(ctx, st, nil, sess, top, page, false)
 }
 
-func ListMapped(ctx context.Context, st Store, m ChatMap, sess domain.Session, top int, page string) (domain.ChatPage, error) {
+// ListMapped lists chats and remembers their names for --to. Hidden chats are left out
+// unless includeHidden is set, which is how to find a chat ID to unhide.
+func ListMapped(ctx context.Context, st Store, m ChatMap, sess domain.Session, top int, page string, includeHidden bool) (domain.ChatPage, error) {
 	if err := auth.Require(sess, false, true); err != nil {
 		return domain.ChatPage{}, err
 	}
@@ -74,7 +78,11 @@ func ListMapped(ctx context.Context, st Store, m ChatMap, sess domain.Session, t
 	if err != nil {
 		return domain.ChatPage{}, err
 	}
-	p, err := st.ListChats(ctx, n, page)
+	list := st.ListVisibleChats
+	if includeHidden {
+		list = st.ListChats
+	}
+	p, err := list(ctx, n, page)
 	if err != nil {
 		return domain.ChatPage{}, err
 	}

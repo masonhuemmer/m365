@@ -268,17 +268,25 @@ func seedChats(c1 domain.Chat) []domain.Chat {
 }
 
 func (m *Memory) ListChats(_ context.Context, top int, page string) (domain.ChatPage, error) {
+	return m.listChats(top, page, false)
+}
+
+func (m *Memory) ListVisibleChats(_ context.Context, top int, page string) (domain.ChatPage, error) {
+	return m.listChats(top, page, true)
+}
+
+func (m *Memory) listChats(top int, page string, visibleOnly bool) (domain.ChatPage, error) {
 	if err := m.fail(); err != nil {
 		return domain.ChatPage{}, err
 	}
+	items := m.chatsWithHidden(visibleOnly)
 	if top <= 0 {
-		top = len(m.Chats)
+		top = len(items)
 	}
 	skip := 0
 	if strings.HasPrefix(page, "s.") {
 		skip, _ = strconv.Atoi(strings.TrimPrefix(page, "s."))
 	}
-	items := m.Chats
 	if skip > len(items) {
 		skip = len(items)
 	}
@@ -293,6 +301,20 @@ func (m *Memory) ListChats(_ context.Context, top int, page string) (domain.Chat
 	}
 	p.Count = len(p.Items)
 	return p, nil
+}
+
+// chatsWithHidden copies the chats, marking the ones HideChat hid, and drops them if visibleOnly.
+func (m *Memory) chatsWithHidden(visibleOnly bool) []domain.Chat {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	items := make([]domain.Chat, 0, len(m.Chats))
+	for _, c := range m.Chats {
+		c.Hidden = m.Hidden[c.ID]
+		if !(visibleOnly && c.Hidden) {
+			items = append(items, c)
+		}
+	}
+	return items
 }
 
 func (m *Memory) GetChat(_ context.Context, id string) (domain.Chat, error) {

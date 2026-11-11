@@ -9,8 +9,14 @@ import (
 )
 
 type chatMem struct {
-	chats     []domain.Chat
-	listCalls int
+	chats        []domain.Chat
+	listCalls    int
+	visibleCalls int
+}
+
+func (m *chatMem) ListVisibleChats(ctx context.Context, top int, page string) (domain.ChatPage, error) {
+	m.visibleCalls++
+	return m.ListChats(ctx, top, page)
 }
 
 func (m *chatMem) ListChats(_ context.Context, top int, page string) (domain.ChatPage, error) {

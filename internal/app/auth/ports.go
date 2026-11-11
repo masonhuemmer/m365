@@ -13,6 +13,7 @@ type Blob struct {
 	Teams        bool      `json:"teams"`
 	Calendar     bool      `json:"calendar"`
 	Files        bool      `json:"files"`
+	Meetings     bool      `json:"meetings"`
 	Usable       bool      `json:"usable"`
 	AccessToken  string    `json:"access_token,omitempty"`
 	RefreshToken string    `json:"refresh_token,omitempty"`
@@ -30,8 +31,9 @@ type LoginFn func(ctx context.Context) (Blob, error)
 // BrowserOpener opens an authorize URL (system browser in production, fake in tests).
 type BrowserOpener func(authorizeURL string) error
 
-// LoopbackStart binds 127.0.0.1 and returns the redirect URL plus a wait for the code.
-type LoopbackStart func() (redirectURL string, wait func(context.Context) (code string, err error), err error)
+// LoopbackStart binds 127.0.0.1 and returns the redirect URL plus a wait for the
+// code of the callback that carries state.
+type LoopbackStart func(state string) (redirectURL string, wait func(context.Context) (code string, err error), err error)
 
 func Status(s Store) (domain.Session, error) {
 	b, ok, err := s.Get()
@@ -49,6 +51,7 @@ func Status(s Store) (domain.Session, error) {
 		TeamsConsented:    b.Teams,
 		CalendarConsented: b.Calendar,
 		FilesConsented:    b.Files,
+		MeetingsConsented: b.Meetings,
 	}, nil
 }
 
@@ -100,6 +103,17 @@ func RequireFiles(sess domain.Session) error {
 	}
 	if !sess.FilesConsented {
 		return domain.Auth("missing files consent")
+	}
+	return nil
+}
+
+// RequireMeetings checks the opt-in meetings consent.
+func RequireMeetings(sess domain.Session) error {
+	if err := Require(sess, false, false); err != nil {
+		return err
+	}
+	if !sess.MeetingsConsented {
+		return &domain.Error{Class: domain.ClassAuth, Message: "missing meetings consent", Hint: "run m365 auth login --meetings"}
 	}
 	return nil
 }

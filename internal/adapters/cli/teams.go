@@ -31,10 +31,11 @@ func runTeams(args []string, d Deps, format string) int {
 		fsset.SetOutput(d.Stderr)
 		top := fsset.Int("top", 0, "")
 		page := fsset.String("page-token", "", "")
+		hidden := fsset.Bool("include-hidden", false, "")
 		if err := parseMixed(fsset, args); err != nil {
 			return fail(d, domain.Usage(err.Error()))
 		}
-		p, err := teams.ListMapped(ctx(), d.Teams, d.ChatMap, sess, *top, *page)
+		p, err := teams.ListMapped(ctx(), d.Teams, d.ChatMap, sess, *top, *page, *hidden)
 		if err != nil {
 			return fail(d, err)
 		}

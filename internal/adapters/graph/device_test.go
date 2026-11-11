@@ -11,6 +11,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// deviceServer is a synthetic device-code and token endpoint. It also
+// replaces the account lookup, so no device test calls live Graph.
 func deviceServer(t *testing.T, tokenBody string) *oauth2.Config {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -24,6 +26,9 @@ func deviceServer(t *testing.T, tokenBody string) *oauth2.Config {
 	cfg := PKCEConfig("cid", "tid", "")
 	cfg.Endpoint.DeviceAuthURL = srv.URL + "/devicecode"
 	cfg.Endpoint.TokenURL = srv.URL + "/token"
+	prev := lookupAccount
+	lookupAccount = func(context.Context, string) string { return "avery@example.test" }
+	t.Cleanup(func() { lookupAccount = prev })
 	return cfg
 }
 
@@ -37,7 +42,7 @@ func TestDeviceLoginPromptsAndReturnsSession(t *testing.T) {
 	if !strings.Contains(out.String(), "ABCD1234") || !strings.Contains(out.String(), "https://login.example/device") {
 		t.Fatal(out.String())
 	}
-	if b.RefreshToken != "r" || !b.Mail || !b.Teams || !b.Files || b.Calendar {
+	if b.RefreshToken != "r" || b.Account != "avery@example.test" || !b.Mail || !b.Teams || !b.Files || b.Calendar {
 		t.Fatalf("%+v", b)
 	}
 }
