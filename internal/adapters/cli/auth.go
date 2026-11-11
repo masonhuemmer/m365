@@ -46,6 +46,7 @@ func nsMap(st domain.Session) map[string]bool {
 	return map[string]bool{
 		"mail": st.MailConsented, "teams": st.TeamsConsented,
 		"calendar": st.CalendarConsented, "files": st.FilesConsented,
+		"meetings": st.MeetingsConsented,
 	}
 }
 
@@ -57,12 +58,9 @@ func runLogin(flags []string, d Deps, format string) int {
 	if err := d.Config.RequireApp(); err != nil {
 		return fail(d, err)
 	}
-	fn := d.Login
-	if len(flags) > 0 {
-		if flags[0] != "--device-code" || len(flags) > 1 {
-			return fail(d, domain.Usagef("unknown login flag %q", flags[0]))
-		}
-		fn = d.DeviceLogin
+	fn, err := loginFn(flags, d)
+	if err != nil {
+		return fail(d, err)
 	}
 	st, err := auth.Login(ctx(), d.Store, fn)
 	if err != nil {
@@ -72,4 +70,28 @@ func runLogin(flags []string, d Deps, format string) int {
 		"signed_in": st.SignedIn, "session_usable": st.SessionUsable, "account": st.Account,
 		"namespaces": nsMap(st),
 	})
+}
+
+// loginFn picks the login for --device-code and --meetings, each at most once.
+func loginFn(flags []string, d Deps) (auth.LoginFn, error) {
+	device, meetings := false, false
+	for _, f := range flags {
+		switch {
+		case f == "--device-code" && !device:
+			device = true
+		case f == "--meetings" && !meetings:
+			meetings = true
+		default:
+			return nil, domain.Usagef("unknown login flag %q", f)
+		}
+	}
+	switch {
+	case meetings && device:
+		return d.MeetingsDeviceLogin, nil
+	case meetings:
+		return d.MeetingsLogin, nil
+	case device:
+		return d.DeviceLogin, nil
+	}
+	return d.Login, nil
 }

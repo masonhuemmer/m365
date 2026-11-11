@@ -26,5 +26,5 @@ func deviceLogin(ctx context.Context, cfg *oauth2.Config, out io.Writer) (auth.B
 		}
 		return auth.Blob{}, domain.Auth(err.Error())
 	}
-	return blobFromToken(ctx, tok), nil
+	return blobFromToken(ctx, tok, cfg.Scopes), nil
 }

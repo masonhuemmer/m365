@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "m365/meetings-transcript.json",
+  "title": "m365 meetings transcript stdout",
+  "description": "Summary of a saved transcript. Never contains transcript text.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["path", "id", "created", "ended", "bytes", "speakers"],
+  "properties": {
+    "path": { "type": "string", "minLength": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "created": { "type": "string", "format": "date-time" },
+    "ended": { "type": "string" },
+    "bytes": { "type": "integer", "minimum": 1, "maximum": 10485760 },
+    "speakers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Distinct voice-tag names in order of first appearance.",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
