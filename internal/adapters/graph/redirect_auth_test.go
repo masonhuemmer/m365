@@ -56,3 +56,24 @@ func TestRedirectOnTheGraphHostKeepsTheToken(t *testing.T) {
 		t.Fatalf("Authorization %q after a same-host redirect", got)
 	}
 }
+
+// redirectLoop answers every request with a 302 back to itself.
+type redirectLoop struct{ calls int }
+
+func (r *redirectLoop) RoundTrip(req *http.Request) (*http.Response, error) {
+	r.calls++
+	return &http.Response{StatusCode: http.StatusFound, Header: http.Header{"Location": {req.URL.String()}}, Body: http.NoBody, Request: req}, nil
+}
+
+func TestRedirectLoopStopsAfterTen(t *testing.T) {
+	rt := &redirectLoop{}
+	c := &HTTPClient{Base: liveGraphBase, Token: "fake-token", Client: &http.Client{Transport: rt}}
+	res, err := c.request(context.Background(), http.MethodGet, liveGraphBase+"/me", nil, "", "")
+	if err == nil {
+		_ = res.Body.Close()
+		t.Fatal("a redirect loop returned no error")
+	}
+	if !strings.Contains(err.Error(), "stopped after 10 redirects") {
+		t.Fatalf("error %q", err)
+	}
+}
