@@ -76,23 +76,37 @@ func Parse(path string) (Feature, error) {
 	return feat, sc.Err()
 }
 
+// RunFeature runs the parser IR of the feature at path (see irPathFor):
+// each scenario once, or once per example row as example_<n>.
 func RunFeature(t *testing.T, path string) {
 	t.Helper()
-	// A step with no handler used to pass silently (SDO-566). Check the
-	// whole feature first and report every problem before running it.
-	feat, err := checkFeature(path)
+	// A step with no handler used to pass silently (SDO-566). Check every
+	// expanded step first and report every problem before running any.
+	runs, err := planFeature(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, scn := range feat.Scenarios {
-		t.Run(scn.Name, func(t *testing.T) {
-			w := &World{T: t}
-			for _, st := range scn.Steps {
-				if err := dispatch(w, st.Text); err != nil {
-					t.Fatalf("%s %s: %v", st.Kind, st.Text, err)
+	for _, sc := range runs {
+		t.Run(sc.Name, func(t *testing.T) {
+			for _, e := range sc.Runs {
+				if e.Name == "" {
+					runSteps(t, e.Steps)
+					continue
 				}
+				t.Run(e.Name, func(t *testing.T) { runSteps(t, e.Steps) })
 			}
 		})
+	}
+}
+
+// runSteps runs one execution in a fresh world.
+func runSteps(t *testing.T, steps []Step) {
+	t.Helper()
+	w := &World{T: t}
+	for _, st := range steps {
+		if err := dispatch(w, st.Text); err != nil {
+			t.Fatalf("%s %s: %v", st.Kind, st.Text, err)
+		}
 	}
 }
 
