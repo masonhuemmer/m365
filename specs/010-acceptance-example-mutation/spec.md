@@ -16,11 +16,11 @@ A maintainer runs `make acceptance-mutation`. For each feature with an Examples 
 
 **Why this priority**: It is the gate the constitution requires; without it, example data in a feature can drift from what the tests check.
 
-**Independent Test**: Run `make acceptance-mutation` on the branch: every mutation of `features/cli/exit-codes.feature` is killed and the target exits 0. Add a column that no step reads to a scratch copy of the feature: the target exits non-zero and reports the surviving mutation.
+**Independent Test**: Run `make acceptance-mutation` on the branch: every mutation of `features/cli/unknown-commands.feature` is killed and the target exits 0. Add a column that no step reads to a scratch copy of the feature: the target exits non-zero and reports the surviving mutation.
 
 **Acceptance Scenarios**:
 
-1. **Given** a feature with an Examples table whose every cell is asserted, **When** the maintainer runs the target, **Then** every mutation is killed, the target exits 0, and the feature carries a fresh mutation stamp.
+1. **Given** a feature with an Examples table whose every cell is asserted, **When** the maintainer runs the target, **Then** every mutation is killed, the target exits 0, and `features/` is unchanged.
 2. **Given** a cell that no step checks, **When** the target runs, **Then** that mutation survives and the target exits non-zero.
 3. **Given** no feature with an Examples table, **When** the target runs, **Then** it exits non-zero and says there is nothing to mutate.
 4. **Given** a mutation run that cannot start or finish a test (missing binary, timeout, no test selected), **When** the target runs, **Then** the mutation is an error, never a pass.
@@ -31,7 +31,7 @@ An author writes a Scenario Outline with an Examples table, or a Background. The
 
 **Why this priority**: The mutator only mutates example values, so the runtime must run them.
 
-**Independent Test**: The exit-code outline runs one subtest per row; a placeholder with no column fails the test before any step runs.
+**Independent Test**: The unknown-commands outline runs one subtest per row; a placeholder with no column fails the test before any step runs.
 
 **Acceptance Scenarios**:
 
@@ -40,13 +40,13 @@ An author writes a Scenario Outline with an Examples table, or a Background. The
 3. **Given** a step whose `<name>` has no column in the row, **When** the test runs, **Then** it fails and names the placeholder.
 4. **Given** any expanded step with no handler, **When** the test runs, **Then** it fails before any scenario runs and lists every such step (as today).
 
-### User Story 3 - The exit-code contract is stated as examples (Priority: P2)
+### User Story 3 - Unknown commands are stated as examples (Priority: P2)
 
-`features/cli/exit-codes.feature` lists, per row, a command, its exit code and the text that proves why it exited that way.
+`features/cli/unknown-commands.feature` lists, per row, an unknown namespace or verb, its exit code, and the JSON error's class and message, which name the unknown word. Each cell is asserted, so each mutation is caught.
 
 **Acceptance Scenarios**:
 
-1. **Given** the fake CLI, **When** each row's command runs, **Then** its exit code and output evidence match the row.
+1. **Given** the fake CLI, **When** each row's command runs, **Then** its exit code and its error's class and message match the row.
 
 ### Edge Cases
 
@@ -62,16 +62,16 @@ An author writes a Scenario Outline with an Examples table, or a Background. The
 - **FR-004**: The generator MUST write APS metadata for each feature (schema_version 1, feature_path, ir_path, implementation_hash over generated files only, hash_scope, generated_files).
 - **FR-005**: A persistent runner worker MUST implement the APS newline-delimited JSON protocol and classify outcomes as test_success, test_failure or infrastructure_error; it MUST write nothing but protocol lines to stdout.
 - **FR-006**: `make acceptance-mutation` MUST run `gherkin-mutator` on every feature with an Examples table and MUST fail on a survivor, an error, or no feature to mutate.
-- **FR-007**: Exception EX-EC-002 MUST be removed from the 001 plan once the gate passes.
+- **FR-007**: Exception EX-EC-002 MUST be removed from the 001 plan (a one-line retirement note may stay) once the gate passes.
 - **FR-008**: No locked test is edited.
 
 ## Success Criteria *(mandatory)*
 
 - **SC-001**: `make acceptance-mutation` exits 0 with every mutation killed, and non-zero for a planted surviving cell.
 - **SC-002**: `make verify` passes, and `make acceptance` runs the same scenarios as before plus the new outline rows.
-- **SC-003**: EX-EC-002 no longer appears in the 001 plan.
+- **SC-003**: The 001 plan has no EX-EC-002 exception section.
 
 ## Assumptions
 
 - The gate stays outside `make verify`, as today; it runs before a release and after acceptance-contract changes.
-- The APS mutator's default differential level (`hard`) applies; `LEVEL=full` reruns every mutation.
+- The gate runs every mutation each time (APS level `full`) on a copy of the feature under `build/`, because the mutator rewrites the manifest in the file it tests on every run.

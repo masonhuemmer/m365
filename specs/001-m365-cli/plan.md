@@ -45,7 +45,7 @@ Replace the local m365 command surface with a Go 1.25+ CLI module. `cmd/m365` is
 - [x] **Engineering Constraints. PASS.** Clean architecture as above. Makefile named targets: `fmt`, `vet`, `unit`, `race`, `coverage`, `gosec`, `govulncheck`, `acceptance`, `acceptance-mutation`, `crap`, aggregated by `verify`. Exception process: written human approval. Bug fixes do not include surrounding refactors. Top-N/paging visible.
 - [x] **Development Workflow & Quality Gates. PASS.** Specify (done) → Constitution Check (this section) → RED commit → GREEN commit → optional REFACTOR → review citing principles → completion only when named gates pass.
 
-v1 MCP absence is not a violation. Written exceptions: EX-I-001, EX-EC-001 and EX-EC-002 (Complexity Tracking).
+v1 MCP absence is not a violation. Written exceptions: EX-I-001 and EX-EC-001 (Complexity Tracking). EX-EC-002 was retired on 2026-11-11 by spec 010.
 
 **Post-design re-check (after Phase 1): PASS.** `research.md`, `data-model.md`, `contracts/`, and `quickstart.md` keep Graph/OAuth/keychain at adapters, domain entities free of SDK fields, fake Graph as the CI boundary, and SC-014 measurement on fakes. Token store: Keychain-with-0600-fallback (T126). Exception EX-I-001 was then the only waiver; EX-EC-001 (CRAP baseline) was added on 2026-09-27.
 
@@ -212,11 +212,3 @@ Constitution II: a Go file over 250 lines needs a refactoring note here; over 50
 - **Scope**: Exactly the entries in `scripts/crap-baseline.txt`, each at no more than its recorded score. The gate fails on any other function over 15 and on any baselined score that rises.
 - **Retirement**: Fix a function when a change touches it. The gate fails when an entry is stale (its function now scores 15 or less, or is gone), so the list only shrinks. This exception MUST NOT be cited as precedent for new functions.
 - **Human approval**: 2026-09-27, the owner chose "Ratchet baseline" for the CRAP gate (session answer before PR #22).
-
-### EX-EC-002 — Acceptance-example mutation has no examples to mutate
-
-- **Principle**: Engineering Constraints and IV. Testing Standards — the acceptance toolchain MUST include example mutation, and the Makefile MUST expose a blocking acceptance-example mutation target.
-- **Rationale**: APS `gherkin-mutator` mutates the values in Examples tables. No feature has an Examples table, and step text takes no arguments, so there is nothing to mutate. Until 2026-11-11, `scripts/acceptance-mutation.sh` printed "test_success" without running the mutator. A real gate needs features with Examples tables, a runner worker for the APS protocol, and generator metadata.
-- **Scope**: `make acceptance-mutation` only. It runs the acceptance runner over the IR and reports that no example mutations ran. It fails when any feature has an Examples table, so the gap can't grow silently.
-- **Retirement**: A separate Spec Kit task adds Examples tables where examples carry the behavior, the runner worker and the generator metadata, and wires `gherkin-mutator` into the target. Then delete this exception.
-- **Human approval**: 2026-11-11, Mason chose "Make it honest + exception".
