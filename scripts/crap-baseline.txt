@@ -18,7 +18,6 @@
 # Format: <score> <file> <function>
 # Score: complexity^2 x (1 - coverage)^3 + complexity, with gocyclo
 # complexity and coverage measured across the module.
-156.0 internal/adapters/graph/oauth_loopback.go LoginPKCE
 154.9 internal/app/calendar/ports.go Update
 90.0 internal/adapters/graph/memory_cal.go (*Memory).UpdateEvent
 63.0 internal/adapters/graph/fakecal.go handleCalendarFiles
