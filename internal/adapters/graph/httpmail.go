@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -43,10 +44,26 @@ func (c *HTTPClient) bearer(force bool) string {
 const maxRefusalDrain = 64 << 10
 
 func (c *HTTPClient) httpc() *http.Client {
+	base := http.DefaultClient
 	if c.Client != nil {
-		return c.Client
+		base = c.Client
 	}
-	return http.DefaultClient
+	cl := *base
+	cl.CheckRedirect = tokenStaysOnOrigin
+	return &cl
+}
+
+// tokenStaysOnOrigin drops the bearer token on a redirect to another scheme,
+// host or port. net/http alone forwards it to subdomains.
+func tokenStaysOnOrigin(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	first := via[0].URL
+	if req.URL.Scheme != first.Scheme || !strings.EqualFold(req.URL.Host, first.Host) {
+		req.Header.Del("Authorization")
+	}
+	return nil
 }
 
 func (c *HTTPClient) request(ctx context.Context, method, raw string, body []byte, contentType, prefer string) (*http.Response, error) {
