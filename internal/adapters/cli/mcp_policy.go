@@ -44,6 +44,11 @@ func (p MCPPolicy) check(in *runIn) error {
 	if !p.ExactRecipients || !isWrite(ns, in.Verb) {
 		return nil
 	}
+	return checkExactRecipients(ns, in)
+}
+
+// checkExactRecipients applies --exact-recipients to one write verb.
+func checkExactRecipients(ns string, in *runIn) error {
 	switch {
 	case ns == "mail" && in.Verb == "reply":
 		return checkReply(in.Flags)
