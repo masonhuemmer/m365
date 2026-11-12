@@ -117,6 +117,22 @@ Each item has from: the sender's display name, or the app name for bot posts.
 Original Graph identity is preserved as sender_type plus from_user_id or from_application_id.
 Use the original ID, never the display name, to authorize a reply; absent IDs stay absent.
 System events (member added, call ended) are skipped unless --include-system.
+Messages with reactions carry reactions: emoji, user_id, user (the member's name when known), created.
+Output: JSON (default) or --human.
+`
+
+const teamsReactHelp = `m365 teams react — add or remove an emoji reaction on a chat message
+
+Forms: teams react CHAT_ID MESSAGE_ID REACTION   (IDs from teams messages)
+       teams react CHAT_ID --last REACTION
+       teams react --to Ajay --last REACTION
+Examples: teams react --to Ajay --last eyes --dry-run
+          teams react 19:abc@thread.v2 1700000000000 like --remove
+REACTION: a name (like, heart, laugh, surprised, sad, angry, eyes) or an emoji such as 🎉.
+--last reacts to the newest message, by created time, that someone else sent (not you, not a system event),
+among the 50 messages Graph returns first (most recently changed). --to needs --last; --exact-recipient as in teams send.
+--remove takes the reaction back. --dry-run shows chat_id, message_id, reaction and action and changes nothing.
+Uses the ChatMessage.Send permission that every sign-in already has.
 Output: JSON (default) or --human.
 `
 

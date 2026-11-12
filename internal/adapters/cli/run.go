@@ -217,6 +217,7 @@ var boolFlags = map[string]bool{
 	"--json": true, "--human": true, "--verbose": true, "--debug": true,
 	"--bodies": true, "--group": true, "--include-existing": true, "--classify": true,
 	"--version": true, "--note-to-self": true, "--preview": true, "--exact-recipient": true,
+	"--last": true, "--remove": true,
 }
 
 func parseMixed(fsset *flag.FlagSet, args []string) error {

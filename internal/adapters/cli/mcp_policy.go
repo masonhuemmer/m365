@@ -47,6 +47,8 @@ func (p MCPPolicy) check(in *runIn) error {
 	switch {
 	case ns == "mail" && in.Verb == "reply":
 		return checkReply(in.Flags)
+	case ns == "teams" && in.Verb == "react":
+		return checkTeamsReact(in)
 	case in.Verb != "send":
 		return nil
 	case ns == "mail":
@@ -159,4 +161,18 @@ func isEmail(s string) bool {
 
 func isChatID(s string) bool {
 	return (strings.HasPrefix(s, "19:") || strings.HasPrefix(s, "48:")) && !strings.ContainsAny(s, " \t\n")
+}
+
+// checkTeamsReact requires --to to be an exact email or user ID, and makes the chat match exact.
+func checkTeamsReact(in *runIn) error {
+	to, exists := in.Flags["to"]
+	if !exists {
+		return nil
+	}
+	s, ok := to.(string)
+	if !ok || !(isEmail(s) || userIDPattern.MatchString(s)) {
+		return domain.Usage("--to requires an exact email or user ID")
+	}
+	in.Flags["exact-recipient"] = true
+	return nil
 }
