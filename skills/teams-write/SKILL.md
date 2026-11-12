@@ -40,5 +40,9 @@ Hide a chat: teams hide CHAT_ID removes it from your own list only (teams unhide
 
   teams hide CHAT_ID --dry-run
 
+React to a message: teams react CHAT_ID MESSAGE_ID REACTION adds an emoji reaction; REACTION is like, heart, laugh, surprised, sad, angry, eyes, or an emoji such as 🎉. --remove takes it back. teams react --to Ajay --last eyes reacts to the newest message someone else sent, among the 50 messages Graph returns first; teams react CHAT_ID --last works the same in a known chat. Message IDs come from teams messages, which also lists each message's reactions. Dry-run shows chat_id, message_id and reaction (with --last also from, created and text): check it is the message you mean. MCP: write_opt_in is required, --allow takes teams.react, and with --exact-recipients --to must be an exact email or user ID.
+
+  teams react --to Ajay --last eyes --dry-run
+
 Do not post one run-on --text string with markdown left unconverted. Adaptive Cards and Graph beta markdown are out of scope.
 Happy-path examples stay dry-run (write_opt_in false).

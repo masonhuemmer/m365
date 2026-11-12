@@ -96,7 +96,7 @@ An agent using the m365 MCP server can react only with the user's write opt-in, 
 
 - Names are case-insensitive (`Like`, `EYES`).
 - A ZWJ or skin-tone emoji (👩🏽‍💻, 👍🏽) is accepted; text, numbers alone, punctuation and spaces are refused before any Graph call.
-- An emoji that Teams does not support: Graph refuses it, and the command exits 5 (Graph error) with Graph's message.
+- An emoji that Teams does not support: Graph refuses it, and the command exits 5 (Graph error).
 - A message or chat that does not exist: exit 6 (not found).
 - Reacting twice with the same emoji: Graph decides; m365 sends one request each time.
 - `--last` in Notes (`48:notes`) or a chat where m365 cannot find you among the members: exit 3, with a hint to pass a message ID.
