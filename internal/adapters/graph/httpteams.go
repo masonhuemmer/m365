@@ -157,6 +157,7 @@ type graphChatMsg struct {
 		User        *graphIdentity `json:"user"`
 		Application *graphIdentity `json:"application"`
 	} `json:"from"`
+	Reactions []graphReaction `json:"reactions"`
 }
 type graphIdentity struct {
 	ID          string `json:"id"`
