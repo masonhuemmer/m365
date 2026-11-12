@@ -112,7 +112,11 @@ func Messages(ctx context.Context, st Store, sess domain.Session, q MessageQuery
 		return domain.ChatMessagePage{}, err
 	}
 	q.Top = n
-	return st.Messages(ctx, q)
+	p, err := st.Messages(ctx, q)
+	if err != nil {
+		return domain.ChatMessagePage{}, err
+	}
+	return nameReactions(ctx, st, q.ChatID, p), nil
 }
 
 func Send(ctx context.Context, st Store, sess domain.Session, in SendInput) (any, error) {
