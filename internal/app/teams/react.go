@@ -88,6 +88,9 @@ func checkReactForm(in ReactInput) error {
 // lastFromOthers picks the newest message, by created time, that has a sender other than
 // you, among the first LastMessageScan messages. Graph lists them by last change.
 func lastFromOthers(ctx context.Context, st Store, sess domain.Session, chatID string) (domain.ChatMessage, error) {
+	if chatID == SelfChatID {
+		return domain.ChatMessage{}, domain.Usage("--last does not work in Notes, where every message is yours; pass CHAT_ID MESSAGE_ID")
+	}
 	chat, err := st.GetChat(ctx, chatID)
 	if err != nil {
 		return domain.ChatMessage{}, err
