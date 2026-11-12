@@ -21,6 +21,7 @@ type ChatMessage struct {
 	Text              string       `json:"text,omitempty"`
 	System            bool         `json:"system,omitempty"`
 	Attachments       []Attachment `json:"attachments,omitempty"`
+	Reactions         []Reaction   `json:"reactions,omitempty"`
 }
 
 type ChatPage struct {
