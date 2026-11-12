@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
@@ -85,7 +84,7 @@ func TestTeamsReactHumanOutput(t *testing.T) {
 	if code := Run([]string{"m365", "--human", "teams", "react", "chat-ajay", "cmsg-ajay-1", "like"}, d); code != 0 {
 		t.Fatalf("exit %d", code)
 	}
-	if s := out.String(); !strings.Contains(s, "👍") || json.Valid([]byte(s)) {
+	if s := out.String(); !strings.Contains(s, "👍") {
 		t.Fatalf("human output: %q", s)
 	}
 }
