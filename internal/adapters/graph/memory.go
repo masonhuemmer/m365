@@ -68,7 +68,7 @@ func Seed() *Memory {
 		},
 		MailDeltaToken: "memory-v1",
 		Chats:          seedChats(c1),
-		Msgs:           map[string][]domain.ChatMessage{"chat-1": {cm}, "chat-2": {c2m}},
+		Msgs:           map[string][]domain.ChatMessage{"chat-1": {cm}, "chat-2": {c2m}, "chat-ajay": seedAjayMessages()},
 		Bytes:          map[string][]byte{"att-1": []byte("synthetic-ok")},
 		Events: []domain.WatchEvent{{
 			ChatID: "chat-1", MessageID: "cmsg-1", From: "Alice", Text: "hi",
