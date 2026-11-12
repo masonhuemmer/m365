@@ -34,7 +34,7 @@
 
 - [X] T013 MCP write recipe, `skills/teams-write/SKILL.md`, README.
 - [X] T014 `make verify` and `make acceptance-mutation` pass.
-- [ ] T015 Live check with Mason in a real chat (react, see it in Teams and in `teams messages`, remove).
+- [X] T015 Live check with Mason in a real chat (react, see it in Teams and in `teams messages`, remove).
 - [ ] T016 Ask Mason before push, PR or merge.
 
 ## Log
@@ -45,4 +45,6 @@
 - T010–T012: SCAFFOLD `8ecc3fc`, RED `10fc24d` (CLI and MCP tests and every new acceptance scenario failed with `unknown teams verb "react"`; the `teams messages` reactions scenario already passed on the phase 2 GREEN). The locked `TestTeamsReactHumanOutput` wrongly asserted that `--human` output is not JSON; m365 prints indented JSON for map results. Mason approved dropping that one check (`2f47b20`). GREEN `a49a5b6`. `--last` and `--remove` joined `boolFlags`, or `parseMixed` would read the reaction as their value.
 - T013 `48bfd67`: README, teams-write MCP recipe and skill. Spec edge case corrected (Graph errors exit 5 with the generic message); plan step 4 (the fake records `ReactionChange` in `Sent`) and step 7 (names are not example values: the mutator's case changes would be equivalent mutations) updated to match.
 - T014: first `make verify` failed only at `crap`: `MCPPolicy.check` 16.1 > 15 after the react case. REFACTOR `4b9e98b` moved the exact-recipient switch into `checkExactRecipients`. Then, from a clean `build/`: `make verify` exit 0 (filesize ok 383 files, gosec 0 issues, govulncheck 0 affecting, crap ok 563 functions / 42 baseline); `make acceptance-mutation` exit 0 (unknown-commands 12/12 killed, teams react 4/4 killed), `features/` unchanged.
+- T015 (2026-11-12, Mason chose his Notes chat so nobody else sees it): branch build, real Graph. `teams react 48:notes <newest note id> eyes --dry-run` → dry run; real run → `reacted: true`; `teams messages 48:notes` showed 👀 with `user_id` and `created` (no `user`: Graph sent no name and Notes has no member list, as specified); `--remove` → `removed: true`, and the reaction was gone. `--last` in Notes exited 5 because Graph cannot read `48:notes` as a chat, not the specified usage error: RED `a735a47`, fix `84d4ca1` (refused before any Graph call); live recheck exit 3 with the hint. Read-only check of 8 recent chats (counts only, no text or names): 39 reactions, every one with `user_id` and `user`. `--last` was not run in a real chat with other people.
+- After the fix, from a clean `build/`: `make verify` exit 0; `make acceptance-mutation` 12/12 and 4/4 killed.
 
