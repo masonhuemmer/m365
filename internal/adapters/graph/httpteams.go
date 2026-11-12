@@ -157,6 +157,7 @@ type graphChatMsg struct {
 		User        *graphIdentity `json:"user"`
 		Application *graphIdentity `json:"application"`
 	} `json:"from"`
+	Reactions []graphReaction `json:"reactions"`
 }
 type graphIdentity struct {
 	ID          string `json:"id"`
@@ -167,7 +168,7 @@ type graphIdentity struct {
 // Graph returns from=null for system events, which report as messageType
 // systemEventMessage or unknownFutureValue.
 func (g graphChatMsg) toChatMessage(chatID string) domain.ChatMessage {
-	m := domain.ChatMessage{ID: g.ID, ChatID: chatID, Text: g.Body.Content, Created: g.Created}
+	m := domain.ChatMessage{ID: g.ID, ChatID: chatID, Text: g.Body.Content, Created: g.Created, Reactions: mapReactions(g.Reactions)}
 	m.System = g.Type != "" && g.Type != "message"
 	if g.From != nil {
 		if g.From.User != nil {

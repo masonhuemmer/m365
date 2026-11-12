@@ -12,7 +12,7 @@ import (
 
 func runTeams(args []string, d Deps, format string) int {
 	if len(args) == 0 || args[0] == "help" || args[0] == "--help" || args[0] == "-h" {
-		return writeHelp(d.Stdout, teamsListHelp+teamsMessagesHelp+teamsFindHelp+teamsSendHelp+teamsCreateHelp+teamsRenameHelp+teamsHideHelp+teamsUnhideHelp)
+		return writeHelp(d.Stdout, teamsListHelp+teamsMessagesHelp+teamsFindHelp+teamsSendHelp+teamsReactHelp+teamsCreateHelp+teamsRenameHelp+teamsHideHelp+teamsUnhideHelp)
 	}
 	verb, args := args[0], args[1:]
 	sess, err := session(d)
@@ -72,6 +72,11 @@ func runTeams(args []string, d Deps, format string) int {
 			return writeHelp(d.Stdout, teamsSendHelp)
 		}
 		return teamsSend(args, d, sess, format)
+	case "react":
+		if hasHelp(args) {
+			return writeHelp(d.Stdout, teamsReactHelp)
+		}
+		return teamsReact(args, d, sess, format)
 	case "watch":
 		return teamsWatch(args, d, sess, format)
 	case "attachments":
